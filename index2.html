@@ -988,48 +988,124 @@
     const chkSvg = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#071a0e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
     // ── BARCODE SCANNER ────────────────────────────────────
-    let scanStream = null
+    let _html5Qr = null
     async function openScanner(onScan) {
-      const video = h('video', { id: 'scan-video', autoplay: '', playsinline: '', muted: '' })
-      const frame = h('div', { className: 'scanner-frame' }, video,
+      // Create a dedicated div for Html5Qrcode (it needs a real div, not video)
+      const scanDiv = document.createElement('div')
+      scanDiv.id = 'html5qr-scan-region'
+      scanDiv.style.cssText = 'width:280px;height:280px;border-radius:16px;overflow:hidden;'
+
+      const frame = h('div', { className: 'scanner-frame' },
+        scanDiv,
         h('div', { className: 'scan-corner' }, h('span', {})),
         h('div', { className: 'scan-line' })
       )
       const hint = h('p', { className: 'scan-hint' }, 'Наведите камеру на штрихкод')
+
+      let stopped = false
+      async function stopAll() {
+        if (stopped) return; stopped = true
+        try { if (_html5Qr) { await _html5Qr.stop(); _html5Qr = null } } catch (e) {}
+        ov.remove()
+      }
+
       const cancelBtn = h('button', {
         className: 'btn btn-secondary', type: 'button',
-        onClick: () => { stopScanner(); ov.remove() }
+        onClick: () => stopAll()
       }, 'Отмена')
+
       const ov = h('div', { className: 'scanner-ov' }, frame, hint, cancelBtn)
       document.body.appendChild(ov)
 
       try {
-        scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        video.srcObject = scanStream
-        const html5QrCode = new Html5Qrcode("scan-video")
-
-        html5QrCode.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: 250
-          },
-          (decodedText) => {
-            stopScanner()
-            html5QrCode.stop()
-            ov.remove()
+        _html5Qr = new Html5Qrcode('html5qr-scan-region')
+        await _html5Qr.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 240, height: 180 } },
+          async (decodedText) => {
+            await stopAll()
             onScan(decodedText)
           },
-          (errorMessage) => { }
-        ).catch(err => {
-          hint.textContent = "Ошибка запуска камеры"
-        })
+          () => {}
+        )
       } catch (e) {
-        hint.textContent = '⚠️ Нет доступа к камере'
+        hint.textContent = '⚠️ Нет доступа к камере: ' + (e.message || e)
+        _html5Qr = null
       }
     }
-    function stopScanner() {
-      if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null }
+
+    // ── BARCODE MANUAL SEARCH ──────────────────────────────
+    async function openBarcodeSearch(onResult) {
+      const inp = h('input', { className: 'inp', placeholder: 'Введите штрихкод (EAN/UPC)...', type: 'text', inputmode: 'numeric' })
+      const resultDiv = h('div', { style: 'margin-top:14px;min-height:40px;' })
+      let foundItem = null
+
+      const searchBtn = h('button', {
+        className: 'btn btn-primary', type: 'button',
+        onClick: async () => {
+          const code = inp.value.trim()
+          if (!code) { inp.focus(); return }
+          resultDiv.innerHTML = '<div class="spin" style="width:24px;height:24px;margin:10px auto;"></div>'
+          searchBtn.disabled = true
+          const item = await lookupBarcode(code)
+          searchBtn.disabled = false
+          if (item) {
+            foundItem = item
+            foundItem._code = code
+            resultDiv.innerHTML = ''
+            const priceText = item.offers && item.offers.length ? ` · ${item.offers[0].price}₽` : ''
+            resultDiv.appendChild(h('div', { style: 'background:var(--bg3);border:1px solid var(--accent);border-radius:10px;padding:12px;' },
+              h('div', { style: 'font-weight:800;margin-bottom:4px;color:var(--accent)' }, '✓ Товар найден'),
+              h('div', { style: 'font-size:15px;font-weight:700;' }, item.title || code),
+              item.brand ? h('div', { style: 'font-size:13px;color:var(--text2);margin-top:2px' }, item.brand + priceText) : null,
+              h('button', {
+                className: 'btn btn-primary btn-full', style: 'margin-top:12px;', type: 'button',
+                onClick: () => { closeModal(); onResult(item, code) }
+              }, 'Добавить в список')
+            ))
+          } else {
+            foundItem = null
+            resultDiv.innerHTML = ''
+            resultDiv.appendChild(h('div', { style: 'color:#f87171;font-size:14px;padding:8px 0;' },
+              `⚠️ Товар «${code}» не найден в базе. `,
+              h('span', { style: 'color:var(--text2)' }, 'Вы можете добавить вручную.')
+            ))
+            resultDiv.appendChild(h('button', {
+              className: 'btn btn-secondary btn-full', style: 'margin-top:8px;', type: 'button',
+              onClick: () => { closeModal(); onResult(null, code) }
+            }, 'Добавить вручную с этим кодом'))
+          }
+        }
+      }, '🔍 Найти')
+
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') searchBtn.click() })
+
+      const scanBtn = h('button', {
+        className: 'btn btn-secondary', type: 'button',
+        onClick: () => {
+          closeModal()
+          openScanner(async code => {
+            const item = await lookupBarcode(code)
+            if (item) {
+              onResult(item, code)
+            } else {
+              onResult(null, code)
+            }
+          })
+        }
+      }, icoScan(), ' Сканировать')
+
+      openModal([
+        h('div', { className: 'modal-title' }, '🔍 Поиск по штрихкоду'),
+        h('div', { style: 'display:flex;gap:8px;margin-bottom:10px;' },
+          h('div', { style: 'flex:1' }, inp),
+          scanBtn
+        ),
+        searchBtn,
+        resultDiv,
+        h('button', { className: 'btn btn-ghost btn-full', style: 'margin-top:12px;', type: 'button', onClick: closeModal }, 'Закрыть')
+      ])
+      setTimeout(() => inp.focus(), 80)
     }
 
     // ── ADD ITEM MODAL ─────────────────────────────────────
@@ -1053,37 +1129,45 @@
         chips.appendChild(chip)
       })
 
+      function applyFoundItem(item, code) {
+        if (item) {
+          nameInp.value = item.title || code
+          if (item.offers && item.offers.length) priceInp.value = item.offers[0].price || ''
+          if (item.category) {
+            const catId = CATS.find(c => item.category.toLowerCase().includes(c.id))?.id
+            if (catId) {
+              selectedCat = catId
+              chips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'))
+              const catChip = chips.querySelector(`[data-cat="${catId}"]`)
+              if (catChip) catChip.classList.add('active')
+            }
+          }
+          toast('✓ Товар найден', 'ok')
+        } else {
+          nameInp.value = code
+          toast('ⓘ Товар не найден, введите вручную', 'err')
+        }
+        showAddItemModal(onAdd)
+      }
+
       const scanBtn = h('button', {
         className: 'btn btn-secondary btn-icon', type: 'button', title: 'Сканировать штрихкод',
         onClick: () => {
-          closeModal(); openScanner(async code => {
-            // try lookup via UPCitemdb
+          closeModal()
+          openScanner(async code => {
             const item = await lookupBarcode(code)
-            if (item) {
-              nameInp.value = item.title || code
-              // pick first available price
-              if (item.offers && item.offers.length) {
-                priceInp.value = item.offers[0].price || ''
-              }
-              // optional: set category based on item.category
-              if (item.category) {
-                const catId = CATS.find(c => item.category.toLowerCase().includes(c.id))?.id
-                if (catId) {
-                  selectedCat = catId
-                  chips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'))
-                  const catChip = chips.querySelector(`[data-cat="${catId}"]`)
-                  if (catChip) catChip.classList.add('active')
-                }
-              }
-              toast('✓ Товар найден в UPCitemdb', 'ok')
-            } else {
-              nameInp.value = code
-              toast('ⓘ Товар не найден, введите вручную', 'err')
-            }
-            showAddItemModal(onAdd)
+            applyFoundItem(item, code)
           })
         }
       }, icoScan())
+
+      const barcodeSearchBtn = h('button', {
+        className: 'btn btn-secondary btn-icon', type: 'button', title: 'Поиск по штрихкоду вручную',
+        onClick: () => {
+          closeModal()
+          openBarcodeSearch((item, code) => applyFoundItem(item, code))
+        }
+      }, '🔍')
 
       const addBtn = h('button', {
         className: 'btn btn-primary', style: 'flex:2', type: 'button',
@@ -1103,7 +1187,7 @@
         h('div', { className: 'modal-title' }, 'Новый товар'),
         h('div', { className: 'form-row' },
           h('label', { className: 'form-lbl' }, 'Название'),
-          h('div', { style: 'display:flex;gap:8px' }, nameInp, scanBtn)
+          h('div', { style: 'display:flex;gap:8px' }, nameInp, scanBtn, barcodeSearchBtn)
         ),
         h('div', { className: 'grid2' },
           h('div', {}, h('label', { className: 'form-lbl' }, 'Количество'), qtyInp),
