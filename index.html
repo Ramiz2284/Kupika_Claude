@@ -987,22 +987,88 @@
     }
     const chkSvg = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#071a0e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
-    // ── BARCODE SCANNER (Quagga2) ─────────────────────────
-    let _quaggaRunning = false
+    // ── BARCODE SCANNER (ZXing + WebWorker) ──────────────
+    //
+    // Архитектура: Camera → Video → Canvas (ROI) → WebWorker (ZXing) → Main Thread
+    // Worker создаётся как Blob URL — отдельный файл не нужен
+    //
+    let _scanStream = null
+    let _scanWorker = null
+
+    function _createScanWorker() {
+      // Код воркера — будет исполняться в отдельном потоке
+      // ZXing подгружается внутри воркера через importScripts
+      const workerCode = `
+        importScripts('https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js');
+
+        const ZXing = self.ZXing || self['@zxing/library'] || self.zxing;
+        let reader = null;
+
+        function initReader() {
+          try {
+            const hints = new Map();
+            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+              ZXing.BarcodeFormat.EAN_13,
+              ZXing.BarcodeFormat.EAN_8,
+              ZXing.BarcodeFormat.UPC_A,
+              ZXing.BarcodeFormat.UPC_E,
+              ZXing.BarcodeFormat.CODE_128,
+              ZXing.BarcodeFormat.CODE_39,
+            ]);
+            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+            reader = new ZXing.MultiFormatReader();
+            reader.setHints(hints);
+            self.postMessage({ type: 'ready' });
+          } catch(e) {
+            self.postMessage({ type: 'error', msg: e.message });
+          }
+        }
+
+        self.onmessage = (e) => {
+          if (e.data.type === 'init') { initReader(); return; }
+          if (e.data.type === 'decode') {
+            if (!reader) return;
+            const { pixels, width, height } = e.data;
+            try {
+              const src = new ZXing.RGBLuminanceSource(pixels, width, height);
+              const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(src));
+              const result = reader.decode(bitmap);
+              if (result) self.postMessage({ type: 'result', code: result.getText() });
+            } catch(err) {
+              // NotFoundException — штрихкод не найден в кадре, это норма
+            }
+          }
+        };
+      `
+      const blob = new Blob([workerCode], { type: 'application/javascript' })
+      return new Worker(URL.createObjectURL(blob))
+    }
+
     function openScanner(onScan) {
-      const scanDiv = document.createElement('div')
-      scanDiv.id = 'quagga-scan-region'
-      scanDiv.style.cssText = 'width:300px;height:220px;overflow:hidden;border-radius:12px;background:#000;position:relative;'
+      const video = document.createElement('video')
+      video.autoplay = true
+      video.playsInline = true
+      video.muted = true
+      video.style.cssText = 'width:300px;height:220px;object-fit:cover;border-radius:12px;display:block;'
+
+      // Рамка-прицел для штрихкода
+      const frame = h('div', { className: 'scanner-frame' },
+        video,
+        h('div', { className: 'scan-corner' }, h('span', {})),
+        h('div', { className: 'scan-line' })
+      )
+      frame.style.cssText = 'width:300px;height:220px;position:relative;'
 
       const hint = h('p', { className: 'scan-hint' }, '📷 Запуск камеры...')
 
       let stopped = false
+      let rafId = null
+
       function stopAll() {
         if (stopped) return; stopped = true
-        if (_quaggaRunning) {
-          try { Quagga.stop() } catch (e) { }
-          _quaggaRunning = false
-        }
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null }
+        if (_scanStream) { _scanStream.getTracks().forEach(t => t.stop()); _scanStream = null }
+        if (_scanWorker) { _scanWorker.terminate(); _scanWorker = null }
         if (ov.parentNode) ov.remove()
       }
 
@@ -1011,78 +1077,83 @@
         onClick: stopAll
       }, 'Отмена')
 
-      const ov = h('div', { className: 'scanner-ov' }, scanDiv, hint, cancelBtn)
+      const ov = h('div', { className: 'scanner-ov' }, frame, hint, cancelBtn)
       document.body.appendChild(ov)
 
-      // Буфер подтверждения — код должен совпасть 2 раза подряд
-      const detectedCodes = {}
+      // Запуск камеры
+      navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      }).then(stream => {
+        if (stopped) { stream.getTracks().forEach(t => t.stop()); return }
+        _scanStream = stream
+        video.srcObject = stream
 
-      Quagga.init({
-        inputStream: {
-          type: 'LiveStream',
-          target: scanDiv,
-          constraints: {
-            facingMode: 'environment',
-            // Высокое разрешение — критично для EAN-13
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          // Центральная зона кадра — туда и должен попасть штрихкод
-          area: {
-            top: '20%',
-            right: '10%',
-            left: '10%',
-            bottom: '20%',
-          },
-        },
-        locator: {
-          // large лучше для EAN-13 на смартфоне — крупные патчи, надёжнее
-          patchSize: 'large',
-          // halfSample: false — полное разрешение, медленнее но точнее
-          halfSample: false,
-        },
-        numOfWorkers: navigator.hardwareConcurrency || 2,
-        frequency: 10,
-        decoder: {
-          readers: [
-            // EAN-13 первым — самый распространённый формат товаров
-            'ean_reader',
-            'ean_8_reader',
-            'upc_reader',
-            'upc_e_reader',
-            'code_128_reader',
-            'code_39_reader',
-          ],
-          multiple: false,
-          // Попытки с debug-canvas выключены
-          debug: {
-            drawBoundingBox: false,
-            showFrequency: false,
-            drawScanline: false,
-            showPattern: false,
-          },
-        },
-      }, (err) => {
-        if (err) {
-          hint.textContent = '⚠️ Ошибка: ' + (err.message || err)
-          return
-        }
-        _quaggaRunning = true
-        hint.textContent = 'Наведите штрихкод в центр кадра'
-        Quagga.start()
-      })
+        // Создаём Worker
+        _scanWorker = _createScanWorker()
+        const detectedCodes = {}
+        let workerBusy = false
 
-      Quagga.onDetected((result) => {
-        const code = result && result.codeResult && result.codeResult.code
-        if (!code) return
-        // Для EAN-13 проверяем что это ровно 13 цифр (базовая валидация)
-        const isEAN = /^\d{8,13}$/.test(code)
-        const threshold = isEAN ? 2 : 3
-        detectedCodes[code] = (detectedCodes[code] || 0) + 1
-        if (detectedCodes[code] >= threshold) {
-          stopAll()
-          onScan(code)
+        _scanWorker.onmessage = (e) => {
+          if (e.data.type === 'ready') {
+            hint.textContent = 'Наведите штрихкод в рамку'
+
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d', { willReadFrequently: true })
+
+            // Петля сканирования — каждый кадр обрезаем ROI и отдаём в воркер
+            function scanLoop() {
+              if (stopped) return
+              rafId = requestAnimationFrame(scanLoop)
+
+              if (workerBusy || !video.videoWidth) return
+              workerBusy = true
+
+              const vw = video.videoWidth
+              const vh = video.videoHeight
+              // ROI: центральная полоса 80% ширины и 35% высоты
+              const rw = Math.floor(vw * 0.8)
+              const rh = Math.floor(vh * 0.35)
+              const rx = Math.floor(vw * 0.1)
+              const ry = Math.floor(vh * 0.325)
+
+              canvas.width = rw
+              canvas.height = rh
+              ctx.drawImage(video, rx, ry, rw, rh, 0, 0, rw, rh)
+              const imgData = ctx.getImageData(0, 0, rw, rh)
+
+              _scanWorker.postMessage(
+                { type: 'decode', pixels: imgData.data, width: rw, height: rh },
+                [imgData.data.buffer] // transferable — нулевое копирование памяти
+              )
+            }
+            scanLoop()
+          }
+
+          if (e.data.type === 'result') {
+            workerBusy = false
+            const code = e.data.code
+            if (!code) return
+            // Подтверждение: EAN нужно 2 совпадения, остальные — 3
+            const isEAN = /^\d{8,13}$/.test(code)
+            detectedCodes[code] = (detectedCodes[code] || 0) + 1
+            if (detectedCodes[code] >= (isEAN ? 2 : 3)) {
+              stopAll()
+              onScan(code)
+            }
+          }
+
+          if (e.data.type === 'error') {
+            hint.textContent = '⚠️ Ошибка ZXing: ' + e.data.msg
+          }
+
+          // Воркер освободился — можно слать следующий кадр
+          if (e.data.type !== 'result') workerBusy = false
         }
+
+        _scanWorker.postMessage({ type: 'init' })
+
+      }).catch(err => {
+        hint.textContent = '⚠️ Нет доступа к камере: ' + err.message
       })
     }
 
@@ -1549,7 +1620,7 @@
       }
     });
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 </body>
 
 </html>
