@@ -987,66 +987,82 @@
     }
     const chkSvg = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="#071a0e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 
-    // ── BARCODE SCANNER ────────────────────────────────────
-    let _html5Qr = null
-    async function openScanner(onScan) {
-      // Div must be in DOM BEFORE new Html5Qrcode() is called
+    // ── BARCODE SCANNER (Quagga2) ─────────────────────────
+    let _quaggaRunning = false
+    function openScanner(onScan) {
       const scanDiv = document.createElement('div')
-      scanDiv.id = 'html5qr-scan-region'
-      // Размер контейнера — широкий прямоугольник для штрихкодов
-      scanDiv.style.cssText = 'width:300px;height:220px;overflow:hidden;border-radius:12px;background:#000;'
+      scanDiv.id = 'quagga-scan-region'
+      scanDiv.style.cssText = 'width:300px;height:220px;overflow:hidden;border-radius:12px;background:#000;position:relative;'
 
       const hint = h('p', { className: 'scan-hint' }, '📷 Запуск камеры...')
 
       let stopped = false
-      async function stopAll() {
+      function stopAll() {
         if (stopped) return; stopped = true
-        try { if (_html5Qr) { await _html5Qr.stop(); _html5Qr = null } } catch (e) {}
+        if (_quaggaRunning) {
+          try { Quagga.stop() } catch (e) { }
+          _quaggaRunning = false
+        }
         if (ov.parentNode) ov.remove()
       }
 
       const cancelBtn = h('button', {
         className: 'btn btn-secondary', type: 'button',
-        onClick: () => stopAll()
+        onClick: stopAll
       }, 'Отмена')
 
       const ov = h('div', { className: 'scanner-ov' }, scanDiv, hint, cancelBtn)
       document.body.appendChild(ov)
 
-      try {
-        // formatsToSupport передаётся в КОНСТРУКТОР, не в start()
-        _html5Qr = new Html5Qrcode('html5qr-scan-region', {
-          formatsToSupport: [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.QR_CODE,
-          ],
-          verbose: false
-        })
+      // Буфер подтверждения — код должен совпасть 2 раза подряд
+      const detectedCodes = {}
 
-        await _html5Qr.start(
-          { facingMode: 'environment' },
-          {
-            fps: 15,
-            // Прямоугольная зона — оптимально для штрихкодов
-            qrbox: { width: 260, height: 100 },
-            aspectRatio: 1.333
+      Quagga.init({
+        inputStream: {
+          type: 'LiveStream',
+          target: scanDiv,
+          constraints: {
+            facingMode: 'environment',
+            width: { min: 640 },
+            height: { min: 480 },
           },
-          async (decodedText) => {
-            await stopAll()
-            onScan(decodedText)
-          },
-          () => {} // ошибки сканирования — норма, игнорируем
-        )
-        hint.textContent = 'Наведите штрихкод в рамку'
-      } catch (e) {
-        hint.textContent = '⚠️ Нет доступа к камере: ' + (e.message || e)
-        _html5Qr = null
-      }
+        },
+        locator: {
+          patchSize: 'medium',
+          halfSample: true,
+        },
+        numOfWorkers: navigator.hardwareConcurrency || 2,
+        frequency: 10,
+        decoder: {
+          readers: [
+            'ean_reader',
+            'ean_8_reader',
+            'upc_reader',
+            'upc_e_reader',
+            'code_128_reader',
+            'code_39_reader',
+          ],
+          multiple: false,
+        },
+      }, (err) => {
+        if (err) {
+          hint.textContent = '⚠️ Ошибка: ' + (err.message || err)
+          return
+        }
+        _quaggaRunning = true
+        hint.textContent = 'Наведите штрихкод в кадр'
+        Quagga.start()
+      })
+
+      Quagga.onDetected((result) => {
+        const code = result && result.codeResult && result.codeResult.code
+        if (!code) return
+        detectedCodes[code] = (detectedCodes[code] || 0) + 1
+        if (detectedCodes[code] >= 2) {
+          stopAll()
+          onScan(code)
+        }
+      })
     }
 
     // ── BARCODE MANUAL SEARCH ──────────────────────────────
@@ -1512,7 +1528,7 @@
       }
     });
   </script>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
 </body>
 
 </html>
