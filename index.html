@@ -992,20 +992,24 @@
       try {
         scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         video.srcObject = scanStream
-        if ('BarcodeDetector' in window) {
-          const det = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code'] })
-          const tick = async () => {
-            if (!document.body.contains(ov)) return
-            if (video.readyState >= 2) {
-              const codes = await det.detect(video).catch(() => [])
-              if (codes.length) { stopScanner(); ov.remove(); onScan(codes[0].rawValue); return }
-            }
-            requestAnimationFrame(tick)
-          }
-          video.addEventListener('loadeddata', tick)
-        } else {
-          hint.textContent = 'Ваш браузер не поддерживает сканер. Введите код вручную.'
-        }
+        const html5QrCode = new Html5Qrcode("scan-video")
+
+        html5QrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: 250
+          },
+          (decodedText) => {
+            stopScanner()
+            html5QrCode.stop()
+            ov.remove()
+            onScan(decodedText)
+          },
+          (errorMessage) => { }
+        ).catch(err => {
+          hint.textContent = "Ошибка запуска камеры"
+        })
       } catch (e) {
         hint.textContent = '⚠️ Нет доступа к камере'
       }
@@ -1367,6 +1371,7 @@
       }
     });
   </script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
 </body>
 
 </html>
