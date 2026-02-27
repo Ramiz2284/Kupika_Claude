@@ -617,13 +617,23 @@
       const label = (text) => h('label', { className: 'block text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 ml-1' }, text)
 
       openModal([
-        h('div', { className: 'flex items-center justify-between mb-6' },
-          h('h2', { className: 'text-2xl font-extrabold flex items-center gap-2' },
-            h('span', { className: 'material-symbols-outlined text-[var(--accent-primary)]' }, 'shopping_cart'), 'Новый товар'
-          ),
-          scanBtn
+        h('div', { className: 'flex items-center gap-3 mb-6' },
+          h('span', { className: 'material-symbols-outlined text-[var(--accent-primary)] text-3xl' }, 'shopping_cart'),
+          h('h2', { className: 'text-xl font-extrabold' }, 'Новый товар')
         ),
         h('div', { className: 'space-y-4 max-h-[80vh] overflow-y-auto pr-1 no-scrollbar' },
+          // ── Кнопка сканера — крупная, всегда видна на телефоне
+          h('button', {
+            className: 'w-full py-4 rounded-2xl bg-gradient-to-tr from-[#3df29c] to-[#35fada] text-[#020202] font-black flex items-center justify-center gap-3 text-base active:scale-[0.98] transition-all shadow-lg shadow-[#3df29c]/20',
+            type: 'button',
+            onClick: () => {
+              closeModal()
+              openScanner(async code => { const item = await lookupBarcode(code); applyFoundItem(item, code) })
+            }
+          },
+            h('span', { className: 'material-symbols-outlined text-2xl' }, 'barcode_scanner'),
+            'Сканировать штрихкод'
+          ),
           h('div', {}, label('Название'), nameInp),
           h('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-3' },
             h('div', {}, label('Штрихкод'), h('div', { className: 'relative' }, barcodeSearchBtn, barcodeInp)),
