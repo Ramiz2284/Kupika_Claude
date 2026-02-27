@@ -1080,77 +1080,104 @@
       const ov = h('div', { className: 'scanner-ov' }, frame, hint, cancelBtn)
       document.body.appendChild(ov)
 
-      // Запуск камеры
-      navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-      }).then(stream => {
+      // Запуск камеры с фокусом
+      const constraints = {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          advanced: [{ focusMode: "continuous" }]
+        }
+      }
+
+      navigator.mediaDevices.getUserMedia(constraints).then(stream => {
         if (stopped) { stream.getTracks().forEach(t => t.stop()); return }
         _scanStream = stream
         video.srcObject = stream
 
-        // Создаём Worker
-        _scanWorker = _createScanWorker()
         const detectedCodes = {}
-        let workerBusy = false
+        const isEAN = (code) => /^\d{8,13}$/.test(code)
 
-        _scanWorker.onmessage = (e) => {
-          if (e.data.type === 'ready') {
-            hint.textContent = 'Наведите штрихкод в рамку'
-
-            const canvas = document.createElement('canvas')
-            const ctx = canvas.getContext('2d', { willReadFrequently: true })
-
-            // Петля сканирования — каждый кадр обрезаем ROI и отдаём в воркер
-            function scanLoop() {
-              if (stopped) return
-              rafId = requestAnimationFrame(scanLoop)
-
-              if (workerBusy || !video.videoWidth) return
-              workerBusy = true
-
-              const vw = video.videoWidth
-              const vh = video.videoHeight
-              // ROI: центральная полоса 80% ширины и 35% высоты
-              const rw = Math.floor(vw * 0.8)
-              const rh = Math.floor(vh * 0.35)
-              const rx = Math.floor(vw * 0.1)
-              const ry = Math.floor(vh * 0.325)
-
-              canvas.width = rw
-              canvas.height = rh
-              ctx.drawImage(video, rx, ry, rw, rh, 0, 0, rw, rh)
-              const imgData = ctx.getImageData(0, 0, rw, rh)
-
-              _scanWorker.postMessage(
-                { type: 'decode', pixels: imgData.data, width: rw, height: rh },
-                [imgData.data.buffer] // transferable — нулевое копирование памяти
-              )
-            }
-            scanLoop()
+        const handleResult = (code) => {
+          if (!code) return
+          detectedCodes[code] = (detectedCodes[code] || 0) + 1
+          if (detectedCodes[code] >= (isEAN(code) ? 2 : 3)) {
+            stopAll()
+            onScan(code)
           }
-
-          if (e.data.type === 'result') {
-            workerBusy = false
-            const code = e.data.code
-            if (!code) return
-            // Подтверждение: EAN нужно 2 совпадения, остальные — 3
-            const isEAN = /^\d{8,13}$/.test(code)
-            detectedCodes[code] = (detectedCodes[code] || 0) + 1
-            if (detectedCodes[code] >= (isEAN ? 2 : 3)) {
-              stopAll()
-              onScan(code)
-            }
-          }
-
-          if (e.data.type === 'error') {
-            hint.textContent = '⚠️ Ошибка ZXing: ' + e.data.msg
-          }
-
-          // Воркер освободился — можно слать следующий кадр
-          if (e.data.type !== 'result') workerBusy = false
         }
 
-        _scanWorker.postMessage({ type: 'init' })
+        // Проверяем наличие нативного BarcodeDetector
+        if ('BarcodeDetector' in window) {
+          hint.textContent = 'Наведите камеру на штрихкод (Быстрый сканер)'
+          const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'] })
+
+          function nativeScanLoop() {
+            if (stopped) return
+            if (video.videoWidth > 0 && video.readyState === video.HAVE_ENOUGH_DATA) {
+              detector.detect(video).then(barcodes => {
+                if (barcodes.length > 0) {
+                  handleResult(barcodes[0].rawValue)
+                }
+              }).catch(e => { /* Игнорируем ошибки детектора */ })
+            }
+            rafId = requestAnimationFrame(nativeScanLoop)
+          }
+          nativeScanLoop()
+        } else {
+          // Fallback на ZXing
+          _scanWorker = _createScanWorker()
+          let workerBusy = false
+
+          _scanWorker.onmessage = (e) => {
+            if (e.data.type === 'ready') {
+              hint.textContent = 'Наведите штрихкод в рамку'
+              const canvas = document.createElement('canvas')
+              const ctx = canvas.getContext('2d', { willReadFrequently: true })
+
+              function scanLoop() {
+                if (stopped) return
+                rafId = requestAnimationFrame(scanLoop)
+
+                if (workerBusy || !video.videoWidth) return
+                workerBusy = true
+
+                const vw = video.videoWidth
+                const vh = video.videoHeight
+
+                // Более широкая область сканирования, чтобы штрихкод точно попал в кадр
+                const rw = Math.floor(vw * 0.9) // 90% ширины
+                const rh = Math.floor(vh * 0.6) // 60% высоты
+                const rx = Math.floor(vw * 0.05)
+                const ry = Math.floor(vh * 0.2)
+
+                canvas.width = rw
+                canvas.height = rh
+                ctx.drawImage(video, rx, ry, rw, rh, 0, 0, rw, rh)
+                const imgData = ctx.getImageData(0, 0, rw, rh)
+
+                _scanWorker.postMessage(
+                  { type: 'decode', pixels: imgData.data, width: rw, height: rh },
+                  [imgData.data.buffer] // transferable
+                )
+              }
+              scanLoop()
+            }
+
+            if (e.data.type === 'result') {
+              workerBusy = false
+              handleResult(e.data.code)
+            }
+
+            if (e.data.type === 'error') {
+              hint.textContent = '⚠️ Ошибка ZXing: ' + e.data.msg
+            }
+
+            if (e.data.type !== 'result') workerBusy = false
+          }
+
+          _scanWorker.postMessage({ type: 'init' })
+        }
 
       }).catch(err => {
         hint.textContent = '⚠️ Нет доступа к камере: ' + err.message
