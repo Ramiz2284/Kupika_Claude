@@ -538,7 +538,6 @@
     }
 
     // ── ADD ITEM MODAL ─────────────────────────────────────
-    // ── ADD ITEM MODAL ─────────────────────────────────────
     function showAddItemModal(onAdd, initialState = {}) {
       const nameInp = h('input', { className: 'premium-input w-full col-span-2 md:col-span-1', placeholder: 'Молоко, хлеб...', type: 'text', value: initialState.name || '' })
       const barcodeInp = h('input', { className: 'premium-input w-full font-mono text-sm pl-9', placeholder: 'Штрихкод...', type: 'text', inputmode: 'numeric', value: initialState.barcode || '' })
@@ -653,11 +652,13 @@
         catch (e) { toast('Error saving', 'err') }
       }
 
+      let isDetailActive = true
+
       const showAdd = () => showAddItemModal(async item => {
         await save([...items, item]); render(); toast('Item added ✓', 'ok')
       })
 
-      const fabListener = () => { if (container.contains(hdr)) showAdd() }
+      const fabListener = () => { if (isDetailActive) showAdd() }
       document.addEventListener('app-fab-click', fabListener)
 
       function render() {
@@ -676,7 +677,12 @@
         )
         const right = h('div', { className: 'flex items-center gap-2' },
           h('button', { className: 'btn-action-circle', onClick: sendWA }, h('span', { className: 'material-symbols-outlined text-[20px]' }, 'share')),
-          h('button', { className: 'btn-action-circle' }, h('span', { className: 'material-symbols-outlined text-[20px]' }, 'qr_code_scanner'))
+          h('button', {
+            className: 'btn-action-circle', onClick: () => {
+              closeModal()
+              openScanner(async code => { const item = await lookupBarcode(code); applyFoundItemToList(item, code) })
+            }
+          }, h('span', { className: 'material-symbols-outlined text-[20px]' }, 'qr_code_scanner'))
         )
         hdr.append(left, right)
         container.appendChild(hdr)
@@ -731,6 +737,13 @@
         }
         container.appendChild(listContainer)
 
+        // Floating FAB for adding items
+        const fab = h('button', {
+          className: 'fixed bottom-24 right-5 z-[300] w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#3df29c] to-[#35fada] flex items-center justify-center shadow-2xl shadow-[#3df29c]/30 text-[#020202] transform transition-transform active:scale-90 hover:opacity-90',
+          onClick: showAdd
+        }, h('span', { className: 'material-symbols-outlined font-black text-3xl' }, 'add'))
+        container.appendChild(fab)
+
         // Summary
         const summary = h('div', { className: 'glass-card p-8 text-center mb-10' })
         summary.append(
@@ -753,6 +766,12 @@
         container.appendChild(summary)
       }
 
+      function applyFoundItemToList(item, code) {
+        const newItem = { id: genId(), name: (item && item.title) || code || 'Item', barcode: code || '', qty: 1, unit: 'шт.', price: (item && item.offers && item.offers[0]) ? item.offers[0].price : 0, category: (item && item.category) || 'other', done: false }
+        save([...items, newItem]).then(render)
+        toast(item ? '✓ Product found & added' : 'ⓘ Added with barcode', item ? 'ok' : 'err')
+      }
+
       function sendWA() {
         const nd = items.filter(it => !it.done)
         const total = items.reduce((s, it) => s + (it.price * it.qty), 0)
@@ -764,7 +783,7 @@
       }
 
       render()
-      return () => document.removeEventListener('app-fab-click', fabListener)
+      return () => { isDetailActive = false; document.removeEventListener('app-fab-click', fabListener) }
     }
 
     // ── HOME PAGE ──────────────────────────────────────────
@@ -869,8 +888,8 @@
           })
         }
 
-        renderSection('TODAY', todayItems.length ? todayItems : (lists.length ? lists.slice(0, 1) : []))
-        renderSection('YESTERDAY', olderItems.length ? olderItems : (lists.length > 1 ? lists.slice(1) : []))
+        renderSection('TODAY', todayItems.length ? todayItems : lists)
+        renderSection('YESTERDAY', olderItems)
       }
 
       function showCreate() {
@@ -982,13 +1001,8 @@
         bnav.innerHTML = ''
         BN.forEach((n, idx) => {
           if (idx === 2) {
-            const fab = h('button', {
-              className: 'w-14 h-14 -mt-10 rounded-2xl bg-gradient-to-tr from-[#3df29c] to-[#35fada] flex items-center justify-center shadow-xl shadow-[#3df29c]/20 text-[#020202] transform transition-transform active:scale-90',
-              onClick: () => {
-                document.dispatchEvent(new CustomEvent('app-fab-click'))
-              }
-            }, h('span', { className: 'material-symbols-outlined font-black text-3xl' }, 'add'))
-            bnav.appendChild(fab)
+            // Spacer where FAB used to be
+            bnav.appendChild(h('div', { className: 'w-14' }))
             return
           }
           const isActive = curPage === n.id
