@@ -1023,18 +1023,29 @@
           target: scanDiv,
           constraints: {
             facingMode: 'environment',
-            width: { min: 640 },
-            height: { min: 480 },
+            // Высокое разрешение — критично для EAN-13
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          // Центральная зона кадра — туда и должен попасть штрихкод
+          area: {
+            top: '20%',
+            right: '10%',
+            left: '10%',
+            bottom: '20%',
           },
         },
         locator: {
-          patchSize: 'medium',
-          halfSample: true,
+          // large лучше для EAN-13 на смартфоне — крупные патчи, надёжнее
+          patchSize: 'large',
+          // halfSample: false — полное разрешение, медленнее но точнее
+          halfSample: false,
         },
         numOfWorkers: navigator.hardwareConcurrency || 2,
         frequency: 10,
         decoder: {
           readers: [
+            // EAN-13 первым — самый распространённый формат товаров
             'ean_reader',
             'ean_8_reader',
             'upc_reader',
@@ -1043,6 +1054,13 @@
             'code_39_reader',
           ],
           multiple: false,
+          // Попытки с debug-canvas выключены
+          debug: {
+            drawBoundingBox: false,
+            showFrequency: false,
+            drawScanline: false,
+            showPattern: false,
+          },
         },
       }, (err) => {
         if (err) {
@@ -1050,15 +1068,18 @@
           return
         }
         _quaggaRunning = true
-        hint.textContent = 'Наведите штрихкод в кадр'
+        hint.textContent = 'Наведите штрихкод в центр кадра'
         Quagga.start()
       })
 
       Quagga.onDetected((result) => {
         const code = result && result.codeResult && result.codeResult.code
         if (!code) return
+        // Для EAN-13 проверяем что это ровно 13 цифр (базовая валидация)
+        const isEAN = /^\d{8,13}$/.test(code)
+        const threshold = isEAN ? 2 : 3
         detectedCodes[code] = (detectedCodes[code] || 0) + 1
-        if (detectedCodes[code] >= 2) {
+        if (detectedCodes[code] >= threshold) {
           stopAll()
           onScan(code)
         }
