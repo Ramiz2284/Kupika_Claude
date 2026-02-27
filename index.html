@@ -4,875 +4,85 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Купика — Списки покупок</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>Kupika — Premium Shopping List</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
   <link
-    href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700&display=swap"
-    rel="stylesheet">
-  <style>
+    href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,300,0,0"
+    rel="stylesheet" />
+  <style type="text/tailwindcss">
+    @layer base {
+      body {
+        @apply bg-[#0c0d10] text-[#e2e4e9] antialiased selection:bg-[#4ade80]/30;
+        font-family: 'Nunito', sans-serif;
+      }
+    }
     :root {
-      --bg: #0f1117;
-      --bg2: #181b24;
-      --bg3: #1f2330;
-      --card: #252a38;
-      --border: #2e3447;
-      --accent: #4ade80;
-      --accent2: #22d3ee;
-      --warn: #fb923c;
-      --text: #e8eaf0;
-      --text2: #8892a4;
-      --text3: #535d72;
-      --r: 16px;
-      --rs: 10px;
-      --sh: 0 4px 24px rgba(0, 0, 0, .4);
+      --bg-deep: #0c0d10;
+      --surface: #16181d;
+      --surface-glass: rgba(22, 24, 29, 0.7);
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --accent-primary: #4ade80;
+      --accent-secondary: #22d3ee;
+      --text-muted: #8892a4;
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    .glass-card {
+      @apply bg-[var(--surface-glass)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl shadow-2xl;
     }
-
-    body {
-      font-family: 'Nunito', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
+    .premium-input {
+      @apply bg-[#1f2229] border-transparent focus:border-[var(--accent-primary)] focus:ring-0 rounded-xl transition-all duration-300 placeholder:text-[#535d72] text-sm py-3 px-4;
     }
-
-    #app {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .hdr {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(15, 17, 23, .88);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      height: 60px;
-      padding: 0 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .logo {
-      font-size: 22px;
-      font-weight: 900;
-      cursor: pointer;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hdr-nav {
-      display: flex;
-      gap: 4px;
-    }
-
-    .nav-btn {
-      background: none;
-      border: none;
-      color: var(--text2);
-      padding: 8px 14px;
-      border-radius: var(--rs);
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: .2s;
-    }
-
-    .nav-btn:hover,
-    .nav-btn.active {
-      color: var(--text);
-      background: var(--bg3);
-    }
-
-    .nav-btn.active {
-      color: var(--accent);
-    }
-
-    .main {
-      flex: 1;
-      padding: 24px 20px 100px;
-      max-width: 640px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: var(--sh);
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      padding: 12px 20px;
-      border-radius: var(--rs);
-      font-family: inherit;
-      font-size: 14px;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      transition: .18s;
-      text-decoration: none;
-      line-height: 1;
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: #071a0e;
-    }
-
-    .btn-primary:hover {
-      background: #86efac;
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background: var(--bg3);
-      color: var(--text);
-      border: 1px solid var(--border);
-    }
-
-    .btn-secondary:hover {
-      border-color: var(--accent2);
-      color: var(--accent2);
-    }
-
-    .btn-danger {
-      background: rgba(239, 68, 68, .13);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, .25);
-    }
-
-    .btn-danger:hover {
-      background: rgba(239, 68, 68, .22);
-    }
-
-    .btn-ghost {
-      background: none;
-      color: var(--text2);
-    }
-
-    .btn-ghost:hover {
-      color: var(--text);
-      background: var(--bg3);
-    }
-
-    .btn-wa {
-      background: #25d366;
-      color: #fff;
-    }
-
-    .btn-wa:hover {
-      background: #22c55e;
-      transform: translateY(-1px);
-    }
-
-    .btn-sm {
-      padding: 7px 12px;
-      font-size: 13px;
-    }
-
-    .btn-icon {
-      padding: 8px;
-      border-radius: 8px;
-    }
-
-    .btn-full {
-      width: 100%;
-    }
-
-    .btn:disabled {
-      opacity: .38;
-      cursor: not-allowed;
-      transform: none !important;
-    }
-
-    .inp {
-      width: 100%;
-      padding: 12px 16px;
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: var(--rs);
-      color: var(--text);
-      font-family: inherit;
-      font-size: 15px;
-      outline: none;
-      transition: .18s;
-    }
-
-    .inp:focus {
-      border-color: var(--accent);
-    }
-
-    .inp::placeholder {
-      color: var(--text3);
-    }
-
-    select.inp {
-      cursor: pointer;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892a4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 14px center;
-      padding-right: 36px;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .badge-green {
-      background: rgba(74, 222, 128, .14);
-      color: var(--accent);
-    }
-
-    .badge-blue {
-      background: rgba(34, 211, 238, .14);
-      color: var(--accent2);
-    }
-
-    .badge-orange {
-      background: rgba(251, 146, 60, .14);
-      color: var(--warn);
-    }
-
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .chip {
-      padding: 6px 14px;
-      border-radius: 20px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text2);
-      cursor: pointer;
-      transition: .18s;
-      font-family: inherit;
-    }
-
-    .chip:hover,
-    .chip.active {
-      background: rgba(74, 222, 128, .1);
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    .list-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      padding: 18px 20px;
-      cursor: pointer;
-      transition: .18s;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-    }
-
-    .list-card:hover {
-      border-color: var(--accent2);
-      transform: translateY(-1px);
-      box-shadow: var(--sh);
-    }
-
-    .list-card h3 {
-      font-size: 16px;
-      font-weight: 800;
-      margin-bottom: 6px;
-    }
-
-    .list-card-meta {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--border);
-      transition: .2s;
-    }
-
-    .item:last-child {
-      border-bottom: none;
-    }
-
-    .item.done {
-      opacity: .42;
-    }
-
-    .item.done .item-name {
-      text-decoration: line-through;
-      color: var(--text3);
-    }
-
-    .item-check {
-      width: 24px;
-      height: 24px;
-      border-radius: 8px;
-      border: 2px solid var(--border);
-      background: none;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: .15s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0;
-    }
-
-    .item-check.checked {
-      background: var(--accent);
-      border-color: var(--accent);
-    }
-
-    .item-body {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .item-name {
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .item-meta {
-      font-size: 13px;
-      color: var(--text2);
-    }
-
-    .item-price {
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--accent);
-      white-space: nowrap;
+    .mono {
       font-family: 'JetBrains Mono', monospace;
     }
-
-    .item-del {
-      opacity: 0;
-      transition: .18s;
+    .nav-active {
+      @apply text-[var(--accent-primary)] font-bold;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
     }
 
-    .item:hover .item-del {
-      opacity: 1;
-    }
-
-    .total-bar {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: var(--r);
-      padding: 16px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .total-lbl {
-      font-size: 14px;
-      color: var(--text2);
-      font-weight: 600;
-    }
-
-    .total-amt {
-      font-size: 22px;
-      font-weight: 900;
-      color: var(--accent);
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .prog {
-      height: 4px;
-      background: var(--border);
-      border-radius: 4px;
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-
-    .prog-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      border-radius: 4px;
-      transition: width .4s ease;
-    }
-
-    .scanner-ov {
-      position: fixed;
-      inset: 0;
-      z-index: 200;
-      background: rgba(0, 0, 0, .97);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 20px;
-    }
-
-    .scanner-frame {
-      position: relative;
-      width: 280px;
-      height: 280px;
-    }
-
-    #scan-video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 16px;
-      display: block;
-    }
-
-    .scan-corner {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-    }
-
-    .scan-corner::before,
-    .scan-corner::after,
-    .scan-corner span::before,
-    .scan-corner span::after {
-      content: '';
-      position: absolute;
-      width: 28px;
-      height: 28px;
-      border-color: var(--accent);
-      border-style: solid;
-    }
-
-    .scan-corner::before {
-      top: 0;
-      left: 0;
-      border-width: 3px 0 0 3px;
-      border-radius: 8px 0 0 0;
-    }
-
-    .scan-corner::after {
-      top: 0;
-      right: 0;
-      border-width: 3px 3px 0 0;
-      border-radius: 0 8px 0 0;
-    }
-
-    .scan-corner span::before {
-      bottom: 0;
-      left: 0;
-      border-width: 0 0 3px 3px;
-      border-radius: 0 0 0 8px;
-    }
-
-    .scan-corner span::after {
-      bottom: 0;
-      right: 0;
-      border-width: 0 3px 3px 0;
-      border-radius: 0 0 8px 0;
-    }
-
-    .scan-line {
-      position: absolute;
-      left: 5%;
-      width: 90%;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, var(--accent), transparent);
-      animation: scan 2s ease-in-out infinite;
-    }
-
-    @keyframes scan {
-
-      0%,
-      100% {
-        top: 10%;
-      }
-
-      50% {
-        top: 85%;
-      }
-    }
-
-    .scan-hint {
-      color: var(--text2);
-      font-size: 15px;
-      text-align: center;
-      padding: 0 20px;
-    }
-
-    .modal-ov {
-      position: fixed;
-      inset: 0;
-      z-index: 150;
-      background: rgba(0, 0, 0, .72);
-      backdrop-filter: blur(4px);
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-    }
-
-    .modal {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 24px 24px 0 0;
-      padding: 24px 20px 32px;
-      width: 100%;
-      max-width: 640px;
-      animation: slide-up .28s ease;
-    }
-
-    @keyframes slide-up {
-      from {
-        transform: translateY(100%);
-      }
-
-      to {
-        transform: translateY(0);
-      }
-    }
-
-    .modal-title {
-      font-size: 18px;
-      font-weight: 800;
-      margin-bottom: 20px;
-    }
-
-    .form-row {
-      margin-bottom: 14px;
-    }
-
-    .form-lbl {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      color: var(--text3);
-      margin-bottom: 6px;
-      display: block;
-    }
-
-    .grid2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 14px;
-    }
-
+    /* Keep old structural animations that we still need inside JS */
     .toast-wrap {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 300;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-items: center;
-      pointer-events: none;
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+      z-index: 500; display: flex; flex-direction: column; gap: 8px;
+      align-items: center; pointer-events: none;
     }
-
     .toast {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 11px 20px;
-      font-size: 14px;
-      font-weight: 700;
-      box-shadow: var(--sh);
-      white-space: nowrap;
+      background: var(--surface); border: 1px solid var(--border-subtle);
+      border-radius: 12px; padding: 11px 20px; font-size: 14px; font-weight: 700;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4); white-space: nowrap;
       animation: toast-in .25s ease;
     }
-
-    .toast.ok {
-      border-color: var(--accent);
-      color: var(--accent);
+    .toast.ok { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .toast.err { border-color: #f87171; color: #f87171; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    @keyframes scan-anim { 0%, 100% { top: 10%; } 50% { top: 85%; } }
+  </style>
+  <style>
+    body {
+      min-height: max(884px, 100dvh);
     }
 
-    .toast.err {
-      border-color: #f87171;
-      color: #f87171;
+    /* Hide scrollbar for smooth lists */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
     }
 
-    @keyframes toast-in {
-      from {
-        opacity: 0;
-        transform: translateY(12px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .bnav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(15, 17, 23, .96);
-      backdrop-filter: blur(16px);
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-around;
-      height: 64px;
-      z-index: 99;
-    }
-
-    .bnav-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text3);
-      font-family: inherit;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: .5px;
-      text-transform: uppercase;
-      padding: 8px 20px;
-      transition: .18s;
-      flex: 1;
-    }
-
-    .bnav-btn.active {
-      color: var(--accent);
-    }
-
-    .bnav-icon {
-      font-size: 21px;
-      line-height: 1;
-    }
-
-    .fab {
-      position: fixed;
-      bottom: 76px;
-      right: 20px;
-      width: 54px;
-      height: 54px;
-      border-radius: 17px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border: none;
-      cursor: pointer;
-      font-size: 26px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 8px 24px rgba(74, 222, 128, .32);
-      transition: .18s;
-      z-index: 98;
-    }
-
-    .fab:hover {
-      transform: scale(1.08);
-    }
-
-    .empty {
-      text-align: center;
-      padding: 52px 20px;
-      color: var(--text3);
-    }
-
-    .empty-icon {
-      font-size: 48px;
-      margin-bottom: 14px;
-    }
-
-    .empty h3 {
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--text2);
-      margin-bottom: 8px;
-    }
-
-    .empty p {
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .hero {
-      text-align: center;
-      padding: 36px 20px 28px;
-    }
-
-    .hero h1 {
-      font-size: 30px;
-      font-weight: 900;
-      line-height: 1.2;
-      margin-bottom: 10px;
-    }
-
-    .hero h1 span {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .hero p {
-      color: var(--text2);
-      font-size: 15px;
-      line-height: 1.6;
-    }
-
-    .spin {
-      width: 36px;
-      height: 36px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spinning .7s linear infinite;
-      margin: 60px auto;
-    }
-
-    @keyframes spinning {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .ps h2 {
-      font-size: 18px;
-      font-weight: 900;
-      margin-bottom: 10px;
-      color: var(--accent);
-    }
-
-    .ps p {
-      font-size: 15px;
-      color: var(--text2);
-      line-height: 1.7;
-    }
-
-    .ps+.ps {
-      margin-top: 20px;
-    }
-
-    .contact-row {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .contact-row:last-child {
-      border-bottom: none;
-    }
-
-    .contact-icon {
-      font-size: 22px;
-      width: 32px;
-      text-align: center;
-    }
-
-    .contact-lbl {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text3);
-      margin-bottom: 4px;
-    }
-
-    .contact-val a {
-      color: var(--accent2);
-      text-decoration: none;
-      font-weight: 700;
-    }
-
-    .contact-val a:hover {
-      text-decoration: underline;
-    }
-
-    .cat-hdr {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.2px;
-      color: var(--text3);
-      padding: 14px 0 4px;
-    }
-
-    .divider {
-      height: 1px;
-      background: var(--border);
-      margin: 16px 0;
-    }
-
-    @media(min-width:640px) {
-      .bnav {
-        display: none;
-      }
-
-      .fab {
-        bottom: 24px;
-      }
-
-      .toast-wrap {
-        bottom: 24px;
-      }
-
-      .main {
-        padding-bottom: 40px;
-      }
-    }
-
-    @media(max-width:639px) {
-      .hdr-nav {
-        display: none;
-      }
-    }
-
-    input[type=number] {
-      -moz-appearance: textfield;
-    }
-
-    input[type=number]::-webkit-outer-spin-button,
-    input[type=number]::-webkit-inner-spin-button {
-      -webkit-appearance: none;
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
   </style>
 </head>
 
-<body>
-  <div id="app">
+<body class="min-h-screen flex flex-col">
+  <div id="app" class="flex flex-col min-h-screen">
     <div style="display:flex;align-items:center;justify-content:center;height:100vh;">
-      <div class="spin"></div>
+      <div class="w-12 h-12 rounded-2xl border-2 border-emerald-500/20 border-t-emerald-500 animate-spin"></div>
     </div>
   </div>
 
@@ -972,8 +182,17 @@
     let _modal = null
     function openModal(nodes) {
       closeModal()
-      const ov = h('div', { className: 'modal-ov', onClick: e => { if (e.target === ov) closeModal() } })
-      ov.appendChild(h('div', { className: 'modal' }, ...nodes))
+      const ov = h('div', {
+        className: 'fixed inset-0 z-[500] bg-[#0c0d10]/80 backdrop-blur-sm flex items-end sm:items-center justify-center transition-opacity duration-300',
+        onClick: e => { if (e.target === ov) closeModal() }
+      })
+      ov.appendChild(h('div', {
+        className: 'w-full max-w-lg bg-[var(--surface)] sm:rounded-3xl rounded-t-3xl border sm:border-[var(--border-subtle)] border-t-[var(--border-subtle)] border-x-0 border-b-0 p-6 shadow-2xl relative',
+        style: 'animation: slide-up .28s ease;'
+      },
+        h('div', { className: 'w-12 h-1.5 bg-[#2e3447] rounded-full mx-auto mb-6 sm:hidden pointer-events-none' }),
+        ...nodes
+      ))
       document.body.appendChild(ov)
       _modal = ov
     }
@@ -1073,7 +292,7 @@
       )
       frame.style.cssText = 'width:300px;height:220px;position:relative;'
 
-      const hint = h('p', { className: 'scan-hint' }, '📷 Запуск камеры...')
+      const hint = h('p', { className: 'absolute bottom-32 left-0 right-0 text-center text-white/90 font-bold px-6 z-[210] animate-pulse' }, '📷 Запуск камеры...')
 
       let stopped = false
       let rafId = null
@@ -1087,11 +306,11 @@
       }
 
       const cancelBtn = h('button', {
-        className: 'btn btn-secondary', type: 'button',
+        className: 'absolute bottom-12 left-1/2 -translate-x-1/2 px-8 py-3 rounded-2xl bg-[#1f2229] border border-[var(--border-subtle)] text-white font-bold hover:bg-[#2e3447] transition-colors z-[210] flex items-center gap-2 shadow-2xl', type: 'button',
         onClick: stopAll
-      }, 'Отмена')
+      }, h('span', { className: 'material-symbols-outlined' }, 'close'), 'Отмена')
 
-      const ov = h('div', { className: 'scanner-ov' }, frame, hint, cancelBtn)
+      const ov = h('div', { className: 'fixed inset-0 z-[500] bg-[#0c0d10]/95 backdrop-blur-xl flex flex-col items-center justify-center transition-opacity duration-300' }, frame, hint, cancelBtn)
       document.body.appendChild(ov)
 
       // Запуск камеры
@@ -1208,95 +427,106 @@
 
     // ── BARCODE MANUAL SEARCH ──────────────────────────────
     async function openBarcodeSearch(onResult) {
-      const inp = h('input', { className: 'inp', placeholder: 'Введите штрихкод (EAN/UPC)...', type: 'text', inputmode: 'numeric' })
-      const resultDiv = h('div', { style: 'margin-top:14px;min-height:40px;' })
+      const inp = h('input', { className: 'premium-input w-full mb-4 font-mono text-lg tracking-widest', placeholder: 'Штрихкод (EAN/UPC)...', type: 'text', inputmode: 'numeric' })
+      const resultDiv = h('div', { className: 'mt-4 min-h-[40px] empty:hidden transition-all' })
       let foundItem = null
 
       const searchBtn = h('button', {
-        className: 'btn btn-primary', type: 'button',
+        className: 'w-full py-3 rounded-xl bg-[var(--surface)] border border-[var(--border-subtle)] hover:border-[var(--accent-secondary)]/50 text-white font-bold transition-all flex items-center justify-center gap-2 mb-2', type: 'button',
         onClick: async () => {
           const code = inp.value.trim()
           if (!code) { inp.focus(); return }
-          resultDiv.innerHTML = '<div class="spin" style="width:24px;height:24px;margin:10px auto;"></div>'
-          searchBtn.disabled = true
+          resultDiv.innerHTML = '<div class="w-6 h-6 rounded-full border-2 border-emerald-500/20 border-t-emerald-500 animate-spin mx-auto my-4"></div>'
+          searchBtn.disabled = true; searchBtn.classList.add('opacity-50', 'cursor-not-allowed')
           const item = await lookupBarcode(code)
-          searchBtn.disabled = false
+          searchBtn.disabled = false; searchBtn.classList.remove('opacity-50', 'cursor-not-allowed')
           if (item) {
             foundItem = item
             foundItem._code = code
             resultDiv.innerHTML = ''
-            const priceText = item.offers && item.offers.length ? ` · ${item.offers[0].price}₽` : ''
-            resultDiv.appendChild(h('div', { style: 'background:var(--bg3);border:1px solid var(--accent);border-radius:10px;padding:12px;' },
-              h('div', { style: 'font-weight:800;margin-bottom:4px;color:var(--accent)' }, '✓ Товар найден'),
-              h('div', { style: 'font-size:15px;font-weight:700;' }, item.title || code),
-              item.brand ? h('div', { style: 'font-size:13px;color:var(--text2);margin-top:2px' }, item.brand + priceText) : null,
+            const priceText = item.offers && item.offers.length ? h('span', { className: 'ml-2 text-[var(--accent-secondary)] font-black mono text-base' }, `${item.offers[0].price}₽`) : ''
+            resultDiv.appendChild(h('div', { className: 'bg-[var(--accent-primary)]/10 border border-[var(--accent-primary)]/30 rounded-xl p-4', style: 'animation: slide-up 0.3s ease' },
+              h('div', { className: 'flex items-center gap-2 text-[var(--accent-primary)] font-bold mb-2 text-sm uppercase tracking-widest' },
+                h('span', { className: 'material-symbols-outlined text-[18px]' }, 'check_circle'), 'Товар найден'
+              ),
+              h('div', { className: 'text-lg font-bold mb-1' }, item.title || code),
+              item.brand ? h('div', { className: 'text-sm text-[var(--text-muted)] font-semibold flex items-center mb-4' }, item.brand, priceText) : h('div', { className: 'mb-4' }),
               h('button', {
-                className: 'btn btn-primary btn-full', style: 'margin-top:12px;', type: 'button',
+                className: 'w-full py-3 rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-[#0c0d10] font-black text-sm uppercase tracking-wider hover:opacity-90 transition-opacity', type: 'button',
                 onClick: () => { closeModal(); onResult(item, code) }
               }, 'Добавить в список')
             ))
           } else {
             foundItem = null
             resultDiv.innerHTML = ''
-            resultDiv.appendChild(h('div', { style: 'color:#f87171;font-size:14px;padding:8px 0;' },
-              `⚠️ Товар «${code}» не найден в базе. `,
-              h('span', { style: 'color:var(--text2)' }, 'Вы можете добавить вручную.')
+            resultDiv.appendChild(h('div', { className: 'text-center p-4 rounded-xl border border-red-500/30 bg-red-500/5 mb-3' },
+              h('div', { className: 'text-red-400 font-bold mb-1 flex items-center justify-center gap-2' },
+                h('span', { className: 'material-symbols-outlined text-[18px]' }, 'error'), 'Не найдено'
+              ),
+              h('div', { className: 'text-[var(--text-muted)] text-sm' }, `Товар «${code}» не найден в базе.`)
             ))
             resultDiv.appendChild(h('button', {
-              className: 'btn btn-secondary btn-full', style: 'margin-top:8px;', type: 'button',
+              className: 'w-full py-3 rounded-xl bg-[#1f2229] border border-[var(--border-subtle)] text-white font-bold text-sm hover:bg-[#2e3447] transition-colors', type: 'button',
               onClick: () => { closeModal(); onResult(null, code) }
             }, 'Добавить вручную с этим кодом'))
           }
         }
-      }, '🔍 Найти')
+      }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'search'), 'Искать в базе')
 
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') searchBtn.click() })
 
       const scanBtn = h('button', {
-        className: 'btn btn-secondary', type: 'button',
+        className: 'w-full py-3 rounded-xl bg-gradient-to-tr from-[#1f2229] to-[#16181d] border border-[var(--border-subtle)] text-[#e2e4e9] font-bold transition-all flex items-center justify-center gap-2 group hover:border-[var(--accent-primary)]/50', type: 'button',
         onClick: () => {
           closeModal()
           openScanner(async code => {
             const item = await lookupBarcode(code)
-            if (item) {
-              onResult(item, code)
-            } else {
-              onResult(null, code)
-            }
+            if (item) onResult(item, code)
+            else onResult(null, code)
           })
         }
-      }, icoScan(), ' Сканировать')
+      }, h('span', { className: 'material-symbols-outlined text-[var(--accent-primary)] group-hover:scale-110 transition-transform' }, 'barcode_scanner'), 'Сканировать камерой')
 
       openModal([
-        h('div', { className: 'modal-title' }, '🔍 Поиск по штрихкоду'),
-        h('div', { style: 'display:flex;gap:8px;margin-bottom:10px;' },
-          h('div', { style: 'flex:1' }, inp),
-          scanBtn
+        h('div', { className: 'flex justify-between items-center mb-6' },
+          h('h2', { className: 'text-xl font-extrabold flex items-center gap-2' },
+            h('span', { className: 'material-symbols-outlined text-[var(--text-muted)]' }, 'manage_search'), 'Поиск штрихкода'
+          ),
+          h('button', { className: 'p-2 rounded-full hover:bg-white/5 transition-colors text-[var(--text-muted)]', onClick: closeModal }, h('span', { className: 'material-symbols-outlined text-[20px]' }, 'close'))
+        ),
+        inp,
+        scanBtn,
+        h('div', { className: 'relative my-6 text-center' },
+          h('div', { className: 'absolute inset-0 flex items-center' }, h('div', { className: 'w-full border-t border-[var(--border-subtle)]' })),
+          h('span', { className: 'relative bg-[var(--surface)] px-4 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]' }, 'или введите вручную')
         ),
         searchBtn,
         resultDiv,
-        h('button', { className: 'btn btn-ghost btn-full', style: 'margin-top:12px;', type: 'button', onClick: closeModal }, 'Закрыть')
       ])
       setTimeout(() => inp.focus(), 80)
     }
 
     // ── ADD ITEM MODAL ─────────────────────────────────────
+    // ── ADD ITEM MODAL ─────────────────────────────────────
     function showAddItemModal(onAdd, initialState = {}) {
-      const nameInp = h('input', { className: 'inp', placeholder: 'Молоко, хлеб...', type: 'text', value: initialState.name || '' })
-      const barcodeInp = h('input', { className: 'inp', placeholder: 'Штрихкод...', type: 'text', inputmode: 'numeric', value: initialState.barcode || '' })
-      const qtyInp = h('input', { className: 'inp', type: 'number', min: '0.01', step: '0.01', value: initialState.qty || '1' })
-      const unitSel = h('select', { className: 'inp' }, ...UNITS.map(u => h('option', { value: u, selected: u === initialState.unit }, u)))
-      const priceInp = h('input', { className: 'inp', type: 'number', min: '0', placeholder: '0', step: '0.01', value: initialState.price || '' })
+      const nameInp = h('input', { className: 'premium-input w-full col-span-2 md:col-span-1', placeholder: 'Молоко, хлеб...', type: 'text', value: initialState.name || '' })
+      const barcodeInp = h('input', { className: 'premium-input w-full font-mono text-sm pl-9', placeholder: 'Штрихкод...', type: 'text', inputmode: 'numeric', value: initialState.barcode || '' })
+      const qtyInp = h('input', { className: 'premium-input w-full', type: 'number', min: '0.01', step: '0.01', value: initialState.qty || '1' })
+      const unitSel = h('select', { className: 'premium-input w-full appearance-none bg-no-repeat bg-[center_right_1rem] bg-[url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'8\' viewBox=\'0 0 12 8\'%3E%3Cpath d=\'M1 1l5 5 5-5\' stroke=\'%238892a4\' stroke-width=\'1.5\' fill=\'none\' stroke-linecap=\'round\'/%3E%3C/svg%3E")]' }, ...UNITS.map(u => h('option', { value: u, selected: u === initialState.unit }, u)))
+      const priceInp = h('input', { className: 'premium-input w-full font-mono font-bold text-[var(--accent-primary)]', type: 'number', min: '0', placeholder: '0.00', step: '0.01', value: initialState.price || '' })
       let selectedCat = initialState.category || 'other'
 
-      const chips = h('div', { className: 'chips' })
+      const chips = h('div', { className: 'flex flex-wrap gap-2 mt-1' })
       CATS.forEach(c => {
         const chip = h('button', {
-          className: 'chip' + (c.id === selectedCat ? ' active' : ''), type: 'button',
+          className: 'px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-colors whitespace-nowrap border ' +
+            (c.id === selectedCat ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30' : 'bg-[#1f2229] border-transparent text-[var(--text-muted)] hover:text-white'),
+          type: 'button',
           'data-cat': c.id,
           onClick: () => {
-            chips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'))
-            chip.classList.add('active'); selectedCat = c.id
+            chips.querySelectorAll('button').forEach(x => { x.className = 'px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-colors whitespace-nowrap border bg-[#1f2229] border-transparent text-[var(--text-muted)] hover:text-white' })
+            chip.className = 'px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-colors whitespace-nowrap border bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30'
+            selectedCat = c.id
           }
         }, c.label)
         chips.appendChild(chip)
@@ -1328,26 +558,20 @@
       }
 
       const scanBtn = h('button', {
-        className: 'btn btn-secondary btn-icon', type: 'button', title: 'Сканировать штрихкод',
+        className: 'w-12 h-12 rounded-xl bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] text-[#0c0d10] flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform hover:opacity-90', type: 'button', title: 'Сканировать штрихкод',
         onClick: () => {
           closeModal()
-          openScanner(async code => {
-            const item = await lookupBarcode(code)
-            applyFoundItem(item, code)
-          })
+          openScanner(async code => { const item = await lookupBarcode(code); applyFoundItem(item, code) })
         }
-      }, icoScan())
+      }, h('span', { className: 'material-symbols-outlined font-black text-2xl' }, 'barcode_scanner'))
 
       const barcodeSearchBtn = h('button', {
-        className: 'btn btn-secondary btn-icon', type: 'button', title: 'Поиск по штрихкоду вручную',
-        onClick: () => {
-          closeModal()
-          openBarcodeSearch((item, code) => applyFoundItem(item, code))
-        }
-      }, '🔍')
+        className: 'absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition-colors flex', type: 'button', title: 'Поиск по штрихкоду вручную',
+        onClick: () => { closeModal(); openBarcodeSearch((item, code) => applyFoundItem(item, code)) }
+      }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'search'))
 
       const addBtn = h('button', {
-        className: 'btn btn-primary', style: 'flex:2', type: 'button',
+        className: 'w-full py-3.5 rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-[#0c0d10] font-black tracking-wider uppercase text-sm hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2', type: 'button',
         onClick: () => {
           const name = nameInp.value.trim(); if (!name) { nameInp.focus(); return }
           onAdd({
@@ -1356,26 +580,32 @@
           })
           closeModal()
         }
-      }, '+ Добавить товар')
+      }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'add_circle'), 'Добавить товар')
 
       nameInp.addEventListener('keydown', e => { if (e.key === 'Enter') addBtn.click() })
 
+      const label = (text) => h('label', { className: 'block text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1.5 ml-1' }, text)
+
       openModal([
-        h('div', { className: 'modal-title' }, 'Новый товар'),
-        h('div', { className: 'form-row' },
-          h('label', { className: 'form-lbl' }, 'Название и штрихкод'),
-          h('div', { style: 'display:flex;gap:8px;margin-bottom:8px;' }, nameInp, scanBtn, barcodeSearchBtn),
-          barcodeInp
+        h('div', { className: 'flex items-center justify-between mb-6' },
+          h('h2', { className: 'text-2xl font-extrabold flex items-center gap-2' },
+            h('span', { className: 'material-symbols-outlined text-[var(--accent-primary)]' }, 'shopping_cart'), 'Новый товар'
+          ),
+          scanBtn
         ),
-        h('div', { className: 'grid2' },
-          h('div', {}, h('label', { className: 'form-lbl' }, 'Количество'), qtyInp),
-          h('div', {}, h('label', { className: 'form-lbl' }, 'Единица'), unitSel)
-        ),
-        h('div', { className: 'form-row' }, h('label', { className: 'form-lbl' }, 'Цена за 1 ед. (₽)'), priceInp),
-        h('div', { className: 'form-row' }, h('label', { className: 'form-lbl' }, 'Категория'), chips),
-        h('div', { style: 'display:flex;gap:8px;margin-top:6px' },
-          h('button', { className: 'btn btn-secondary', style: 'flex:1', type: 'button', onClick: closeModal }, 'Отмена'),
-          addBtn
+        h('div', { className: 'space-y-4 max-h-[80vh] overflow-y-auto pr-1 no-scrollbar' },
+          h('div', {}, label('Название'), nameInp),
+          h('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-3' },
+            h('div', {}, label('Штрихкод'), h('div', { className: 'relative' }, barcodeSearchBtn, barcodeInp)),
+            h('div', {}, label('Цена (₽)'), priceInp)
+          ),
+          h('div', { className: 'grid grid-cols-2 gap-3' },
+            h('div', {}, label('Единица'), unitSel),
+            h('div', {}, label('Количество'), qtyInp)
+          ),
+          h('div', { className: 'pt-2' }, label('Категория'), chips),
+          h('div', { className: 'pt-2' }, addBtn),
+          h('button', { className: 'w-full py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] font-bold text-xs hover:bg-[#2e3447] hover:text-white transition-colors uppercase tracking-widest', type: 'button', onClick: closeModal }, 'Отмена')
         )
       ])
       setTimeout(() => nameInp.focus(), 80)
@@ -1396,39 +626,55 @@
         container.innerHTML = ''
         const total = items.reduce((s, it) => s + (it.price * it.qty), 0)
         const doneCount = items.filter(it => it.done).length
-        const pct = items.length ? (doneCount / items.length) * 100 : 0
+        const count = items.length
+        const pct = count ? (doneCount / count) * 100 : 0
 
         // Top bar
-        container.appendChild(h('div', { style: 'display:flex;align-items:center;gap:10px;margin-bottom:20px;' },
-          h('button', { className: 'btn btn-ghost btn-sm btn-icon', type: 'button', onClick: onBack }, icoBack()),
-          h('div', { style: 'flex:1;min-width:0;' },
-            h('h2', { style: 'font-size:19px;font-weight:900;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' }, listDoc.name),
-            h('div', { style: 'font-size:13px;color:var(--text2)' }, `${items.length} тов. · ${doneCount} куплено`)
-          ),
-          h('div', { style: 'display:flex;gap:6px;flex-shrink:0;' },
-            ...(doneCount > 0 ? [h('button', {
-              className: 'btn btn-ghost btn-sm', type: 'button',
-              onClick: () => save(items.map(it => ({ ...it, done: false }))).then(() => { render(); toast('Список сброшен') })
-            }, '↺')] : []),
-            h('button', { className: 'btn btn-wa btn-sm', type: 'button', onClick: sendWA }, icoWA(), ' Отправить')
+        const topBar = h('div', { className: 'flex items-center gap-4 mb-6' })
+        topBar.appendChild(h('button', {
+          className: 'w-10 h-10 rounded-full bg-[#1f2229] border border-[var(--border-subtle)] flex items-center justify-center hover:bg-white/5 transition-colors',
+          type: 'button', onClick: onBack
+        }, h('span', { className: 'material-symbols-outlined' }, 'arrow_back')))
+
+        const titleArea = h('div', { className: 'flex-1 min-w-0 pointer-events-none' },
+          h('h2', { className: 'text-2xl font-extrabold tracking-tight truncate' }, listDoc.name),
+          h('div', { className: 'text-sm font-semibold text-[var(--text-muted)] flex items-center gap-2' },
+            `${count} товаров`,
+            h('span', { className: 'w-1 h-1 rounded-full bg-[var(--border-subtle)]' }),
+            `${doneCount} куплено`
           )
-        ))
+        )
+        topBar.appendChild(titleArea)
+        container.appendChild(topBar)
 
-        // Progress
-        if (items.length > 0) container.appendChild(h('div', { className: 'prog' }, h('div', { className: 'prog-fill', style: `width:${pct}%` })))
-
-        // Total
-        if (total > 0) container.appendChild(h('div', { className: 'total-bar' },
-          h('span', { className: 'total-lbl' }, 'Итого к покупке'),
-          h('span', { className: 'total-amt' }, `${total.toFixed(0)} ₽`)
-        ))
+        // Progress Budget Card
+        if (items.length > 0) {
+          const pcard = h('div', { className: 'glass-card p-5 mb-8' },
+            h('div', { className: 'flex justify-between items-end mb-3 pointer-events-none' },
+              h('div', {},
+                h('div', { className: 'text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1' }, 'Прогресс'),
+                h('div', { className: 'text-xl font-black text-[var(--accent-primary)]' }, `${Math.round(pct)}%`)
+              ),
+              h('div', { className: 'text-right' },
+                h('div', { className: 'text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1' }, 'Сумма'),
+                h('div', { className: 'text-xl font-black mono text-[var(--accent-secondary)]' }, `${total.toFixed(0)}₽`)
+              )
+            ),
+            h('div', { className: 'h-3 w-full bg-[#1c1f26] rounded-full overflow-hidden pointer-events-none' },
+              h('div', { className: 'h-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] transition-all duration-500', style: `width:${pct}%` })
+            )
+          )
+          container.appendChild(pcard)
+        }
 
         // Category filter
         const usedCats = [...new Set(items.map(it => it.category || 'other'))]
         if (usedCats.length > 1) {
-          const chips = h('div', { className: 'chips' })
+          const chips = h('div', { className: 'flex flex-wrap gap-2 mb-6 no-scrollbar overflow-x-auto pb-1' })
           const mk = (id, label) => h('button', {
-            className: 'chip' + (filterCat === id ? ' active' : ''), type: 'button',
+            className: 'px-4 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap border ' +
+              (filterCat === id ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30' : 'bg-[#1f2229] text-[var(--text-muted)] border-transparent hover:text-white'),
+            type: 'button',
             onClick: () => { filterCat = id; render() }
           }, label)
           chips.appendChild(mk('all', 'Все'))
@@ -1436,59 +682,91 @@
           container.appendChild(chips)
         }
 
-        // Items list
+        // Items View
         const filtered = filterCat === 'all' ? items : items.filter(it => (it.category || 'other') === filterCat)
-        const card = h('div', { className: 'card', style: 'padding:4px 16px;' })
+        const cardClass = 'glass-card divide-y divide-[var(--border-subtle)] overflow-hidden mb-6'
+        const listCard = h('div', { className: cardClass })
 
         if (items.length === 0) {
-          card.appendChild(h('div', { className: 'empty' },
-            h('div', { className: 'empty-icon' }, '🛒'), h('h3', {}, 'Список пустой'), h('p', {}, 'Нажмите «+» чтобы добавить первый товар')
+          container.appendChild(h('div', { className: 'text-center py-12 glass-card border-dashed bg-transparent' },
+            h('div', { className: 'w-20 h-20 mx-auto mb-4 rounded-full bg-[#1f2229] flex items-center justify-center' },
+              h('span', { className: 'material-symbols-outlined text-[32px] text-[var(--text-muted)]' }, 'receipt_long')
+            ),
+            h('h3', { className: 'text-lg font-bold mb-1' }, 'Список пуст'),
+            h('p', { className: 'text-sm text-[var(--text-muted)]' }, 'Нажмите + чтобы начать')
           ))
         } else if (filtered.length === 0) {
-          card.appendChild(h('div', { className: 'empty', style: 'padding:32px 0' }, h('p', {}, 'Нет товаров в этой категории')))
+          container.appendChild(h('div', { className: 'text-center py-12 text-[var(--text-muted)] text-sm' }, 'Нет товаров в этой категории'))
         } else {
           const groups = {}
           filtered.forEach(it => { const c = it.category || 'other'; if (!groups[c]) groups[c] = []; groups[c].push(it) })
           const multiCat = Object.keys(groups).length > 1
+
           for (const [catId, catItems] of Object.entries(groups)) {
             if (multiCat) {
               const ci = CATS.find(c => c.id === catId)
-              card.appendChild(h('div', { className: 'cat-hdr' }, ci?.label || '🛒 Другое'))
+              listCard.appendChild(h('div', { className: 'px-5 py-3 bg-[var(--surface)] text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]' }, ci?.label || '🛒 Другое'))
             }
             catItems.forEach(item => {
+              const chkLineClasses = item.done ? 'line-through text-[var(--text-muted)]' : 'text-white'
+              const chkBgMatches = item.done ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)]' : 'bg-transparent border-[var(--border-subtle)]'
+
               const chk = h('button', {
-                className: 'item-check' + (item.done ? ' checked' : ''), type: 'button',
+                className: `w-6 h-6 rounded border flex items-center justify-center shrink-0 transition-colors ${chkBgMatches}`,
+                type: 'button',
                 onClick: async () => { await save(items.map(it => it.id === item.id ? { ...it, done: !it.done } : it)); render() }
-              })
-              if (item.done) chk.innerHTML = chkSvg
+              }, item.done ? h('span', { className: 'material-symbols-outlined text-[#0c0d10] text-[16px] font-bold' }, 'check') : null)
+
               const del = h('button', {
-                className: 'btn btn-danger btn-icon btn-sm item-del', type: 'button',
+                className: 'p-2 rounded-lg text-[var(--text-muted)] hover:bg-red-500/10 hover:text-red-400 opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-all shrink-0 active:opacity-100',
+                type: 'button', title: 'Удалить',
                 onClick: async () => { await save(items.filter(it => it.id !== item.id)); render() }
-              }, icoTrash())
-              const metaText = `${item.qty} ${item.unit}${item.price ? ` · ${item.price}₽/ед.` : ''}${item.barcode ? ` · <code>${item.barcode}</code>` : ''}`
-              const metaEl = h('div', { className: 'item-meta' })
-              metaEl.innerHTML = metaText // using innerHTML to render <code> tag
-              card.appendChild(h('div', { className: 'item' + (item.done ? ' done' : '') },
+              }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'delete'))
+
+              const metaText = `${item.qty} ${item.unit}${item.price ? ` · ${item.price}₽` : ''}${item.barcode ? ` · <span class="mono tracking-tight bg-white/5 py-0.5 px-1.5 rounded text-[10px] text-[var(--accent-secondary)]">${item.barcode}</span>` : ''}`
+              const metaEl = h('div', { className: 'text-xs text-[var(--text-muted)] mt-1 font-semibold flex items-center gap-1 flex-wrap' })
+              metaEl.innerHTML = metaText
+
+              const row = h('div', { className: `p-4 flex items-center gap-4 group transition-colors hover:bg-white/5 ${item.done ? 'opacity-50' : ''}` },
                 chk,
-                h('div', { className: 'item-body' },
-                  h('div', { className: 'item-name' }, item.name),
+                h('div', { className: 'flex-1 min-w-0 cursor-pointer pointer-events-auto', onClick: async () => { await save(items.map(it => it.id === item.id ? { ...it, done: !it.done } : it)); render() } },
+                  h('div', { className: `text-[15px] font-bold truncate transition-colors ${chkLineClasses}` }, item.name),
                   metaEl
                 ),
-                item.price > 0 ? h('div', { className: 'item-price' }, `${(item.price * item.qty).toFixed(0)}₽`) : null,
+                item.price > 0 ? h('div', { className: 'font-black mono text-[#e2e4e9] pointer-events-none' }, `${(item.price * item.qty).toFixed(0)}₽`) : null,
                 del
-              ))
+              )
+              listCard.appendChild(row)
             })
           }
+          container.appendChild(listCard)
         }
-        container.appendChild(card)
 
-        // FAB
-        container.appendChild(h('button', {
-          className: 'fab', type: 'button', title: 'Добавить товар',
-          onClick: () => showAddItemModal(async item => {
-            await save([...items, item]); render(); toast('Товар добавлен ✓')
+        // Action Buttons Row (Reset & Share)
+        if (items.length > 0) {
+          const actionRow = h('div', { className: 'flex gap-3 mb-6' })
+          if (doneCount > 0) {
+            actionRow.appendChild(h('button', {
+              className: 'flex-1 py-3 rounded-xl bg-[#1f2229] border border-[var(--border-subtle)] text-white font-bold text-sm hover:bg-[#2e3447] transition-colors flex items-center justify-center gap-2',
+              type: 'button',
+              onClick: () => save(items.map(it => ({ ...it, done: false }))).then(() => { render(); toast('Список сброшен', 'ok') })
+            }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'refresh'), 'Сбросить'))
+          }
+          actionRow.appendChild(h('button', {
+            className: 'flex-[2] py-3 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 text-[#25D366] font-bold text-sm hover:bg-[#25D366]/20 transition-colors flex items-center justify-center gap-2',
+            type: 'button', onClick: sendWA
+          }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'share'), 'В WhatsApp'))
+          container.appendChild(actionRow)
+        }
+
+        // FAB for generic UI
+        const fab = h('button', {
+          className: 'fixed bottom-24 right-6 md:bottom-12 w-14 h-14 rounded-2xl bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-2xl shadow-emerald-500/40 transform active:scale-95 transition-transform z-50',
+          type: 'button', onClick: () => showAddItemModal(async item => {
+            await save([...items, item]); render(); toast('Товар добавлен ✓', 'ok')
           })
-        }, '+'))
+        }, h('span', { className: 'material-symbols-outlined text-[#0c0d10] font-black text-3xl' }, 'add'))
+        container.appendChild(fab)
       }
 
       function sendWA() {
@@ -1516,61 +794,102 @@
           renderListDetail(container, live, () => { openDoc = null; draw() })
           return
         }
-        container.appendChild(h('div', { className: 'hero' },
-          h('h1', {}, 'Ваши ', h('span', {}, 'покупки')),
-          h('p', {}, 'Создавайте списки, отмечайте купленное, отправляйте в WhatsApp')
+
+        container.appendChild(h('div', { className: 'mb-10 text-center animate-fade-in-up' },
+          h('h1', { className: 'text-4xl md:text-5xl font-extrabold tracking-tight mb-4' },
+            'Ваши ',
+            h('span', { className: 'bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] bg-clip-text text-transparent' }, 'покупки')
+          ),
+          h('p', { className: 'text-[var(--text-muted)] text-base md:text-lg max-w-md mx-auto' },
+            'Создавайте списки, отмечайте купленное, делитесь с близкими.'
+          )
         ))
+
         container.appendChild(h('button', {
-          className: 'btn btn-primary btn-full',
-          style: 'margin-bottom:20px', type: 'button', onClick: showCreate
-        }, '+ Создать список'))
+          className: 'w-full glass-card hover:bg-white/5 active:bg-white/10 transition-colors p-4 mb-8 flex justify-center items-center gap-2 border-[var(--accent-primary)]/30 text-[var(--accent-primary)] font-bold text-lg',
+          type: 'button', onClick: showCreate
+        },
+          h('span', { className: 'material-symbols-outlined' }, 'add_circle'),
+          'Новый список'
+        ))
 
         if (!lists.length) {
-          container.appendChild(h('div', { className: 'empty' },
-            h('div', { className: 'empty-icon' }, '📋'), h('h3', {}, 'Списков пока нет'), h('p', {}, 'Создайте первый список покупок')
+          container.appendChild(h('div', { className: 'text-center py-12' },
+            h('div', { className: 'w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-tr from-[#1f2229] to-[#16181d] flex items-center justify-center border border-[var(--border-subtle)] shadow-xl' },
+              h('span', { className: 'material-symbols-outlined text-[48px] text-[var(--text-muted)]' }, 'shopping_cart_checkout')
+            ),
+            h('h3', { className: 'text-xl font-bold mb-2 text-white' }, 'Списков пока нет'),
+            h('p', { className: 'text-[var(--text-muted)]' }, 'Создайте первый список покупок выше')
           ))
           return
         }
 
-        lists.forEach(list => {
+        lists.forEach((list, i) => {
           const total = (list.items || []).reduce((s, it) => s + (it.price * it.qty), 0)
           const done = (list.items || []).filter(it => it.done).length
           const count = (list.items || []).length
-          const meta = h('div', { className: 'list-card-meta' })
-          meta.appendChild(h('span', { className: 'badge badge-blue' }, `${count} тов.`))
-          if (done > 0) meta.appendChild(h('span', { className: 'badge badge-green' }, `${done} ✓`))
-          if (total > 0) meta.appendChild(h('span', { className: 'badge badge-orange' }, `${total.toFixed(0)}₽`))
-          const del = h('button', {
-            className: 'btn btn-danger btn-icon btn-sm', type: 'button',
+          const pct = count ? Math.round((done / count) * 100) : 0
+          const delay = (i * 0.05).toFixed(2)
+
+          const delBtn = h('button', {
+            className: 'p-2 mt-1 rounded-xl text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-colors z-10', type: 'button', title: 'Удалить',
             onClick: async e => {
               e.stopPropagation()
               if (!confirm(`Удалить «${list.name}»?`)) return
-              await deleteDoc(doc(db, 'lists', list.id)); toast('Список удалён')
+              await deleteDoc(doc(db, 'lists', list.id)); toast('Список удалён', 'ok')
             }
-          }, icoTrash())
-          container.appendChild(h('div', { className: 'list-card', onClick: () => { openDoc = list; draw() } },
-            h('div', { style: 'flex:1;min-width:0;' }, h('h3', {}, list.name), meta),
-            h('div', { style: 'flex-shrink:0;margin-left:12px;' }, del)
-          ))
+          }, h('span', { className: 'material-symbols-outlined text-[20px]' }, 'delete'))
+
+          const card = h('div', {
+            className: 'glass-card hover:border-[var(--accent-primary)]/50 transition-all duration-300 p-5 md:p-6 mb-4 cursor-pointer group animate-fade-in-up',
+            style: `animation-delay: ${delay}s;`,
+            onClick: () => { openDoc = list; draw() }
+          },
+            h('div', { className: 'flex justify-between items-start mb-4' },
+              h('div', { className: 'flex-1 min-w-0 pr-4' },
+                h('h3', { className: 'text-lg font-bold mb-1 group-hover:text-[var(--accent-primary)] transition-colors truncate' }, list.name),
+                h('div', { className: 'flex items-center gap-3 text-xs font-semibold text-[var(--text-muted)]' },
+                  h('span', { className: 'flex items-center gap-1 ' + (done === count && count > 0 ? 'text-[var(--accent-primary)]' : '') },
+                    h('span', { className: 'material-symbols-outlined text-[14px]' }, 'check_circle'),
+                    `${done}/${count} куплено`
+                  )
+                )
+              ),
+              h('div', { className: 'flex items-start gap-4 shrink-0 text-right' },
+                h('div', { className: 'flex flex-col items-end pointer-events-none' },
+                  total > 0 ? h('div', { className: 'text-xl font-black mono text-[var(--accent-secondary)]' }, `${total.toFixed(0)}₽`) : null,
+                  total > 0 ? h('div', { className: 'text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-bold mt-1' }, 'Сумма') : null
+                ),
+                delBtn
+              )
+            ),
+            h('div', { className: 'h-2 w-full bg-[#1c1f26] rounded-full overflow-hidden' },
+              h('div', { className: 'h-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] transition-all duration-500', style: `width: ${pct}%` })
+            )
+          )
+          container.appendChild(card)
         })
       }
 
       function showCreate() {
-        const inp = h('input', { className: 'inp', placeholder: 'Название списка...', type: 'text' })
+        const inp = h('input', { className: 'premium-input w-full mb-6', placeholder: 'Название списка...', type: 'text' })
         const ok = h('button', {
-          className: 'btn btn-primary', style: 'flex:2', type: 'button',
+          className: 'w-full py-3 rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-[#0c0d10] font-black text-sm uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center justify-center gap-2',
+          type: 'button',
           onClick: async () => {
             const name = inp.value.trim(); if (!name) { inp.focus(); return }
             closeModal()
-            try { await addDoc(collection(db, 'lists'), { uid, name, items: [], createdAt: serverTimestamp() }); toast('Список создан ✓') }
+            try { await addDoc(collection(db, 'lists'), { uid, name, items: [], createdAt: serverTimestamp() }); toast('Список создан ✓', 'ok') }
             catch (e) { toast('Ошибка: ' + e.message, 'err') }
           }
-        }, 'Создать')
+        }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'add'), 'Создать')
         inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok.click() })
         openModal([
-          h('div', { className: 'modal-title' }, 'Новый список'), inp,
-          h('div', { style: 'display:flex;gap:8px;margin-top:16px;' },
-            h('button', { className: 'btn btn-secondary', style: 'flex:1', type: 'button', onClick: closeModal }, 'Отмена'), ok
+          h('div', { className: 'text-lg font-extrabold mb-6' }, 'Новый список'),
+          inp,
+          h('div', { className: 'grid grid-cols-2 gap-3' },
+            h('button', { className: 'py-3 rounded-xl bg-[#1f2229] border border-[var(--border-subtle)] text-white font-bold text-sm hover:bg-[#2e3447] transition-colors', type: 'button', onClick: closeModal }, 'Отмена'),
+            ok
           )
         ])
         setTimeout(() => inp.focus(), 60)
@@ -1583,11 +902,11 @@
       }, err => {
         if (err.code === 'failed-precondition') {
           container.innerHTML = ''
-          container.appendChild(h('div', { className: 'card' },
-            h('p', { style: 'color:var(--warn);font-weight:800;margin-bottom:8px;' }, '⚠️ Нужен индекс Firestore'),
-            h('p', { style: 'color:var(--text2);font-size:14px;line-height:1.6;' },
-              'Firebase Console → Firestore → Indexes → создайте составной индекс: ',
-              h('b', {}, 'коллекция lists'), ', поля: ', h('b', {}, 'uid ASC'), ' + ', h('b', {}, 'createdAt DESC'), '.')
+          container.appendChild(h('div', { className: 'glass-card p-6 border-amber-500/50' },
+            h('p', { className: 'text-amber-500 font-extrabold mb-2' }, '⚠️ Нужен индекс Firestore'),
+            h('p', { className: 'text-[var(--text-muted)] text-sm' },
+              'Firebase Console → Firestore → Indexes → создайте составной индекс: коллекция lists, поля: uid ASC + createdAt DESC.'
+            )
           ))
         } else { toast(err.message, 'err') }
       })
@@ -1630,26 +949,49 @@
     function buildApp(uid) {
       const app = document.getElementById('app')
       app.innerHTML = ''
+      app.className = 'flex flex-col min-h-screen bg-[var(--bg-deep)] text-white'
       let curPage = 'home', cleanup = null
 
       const NAV = [{ id: 'home', label: 'Списки' }, { id: 'about', label: 'О нас' }, { id: 'contacts', label: 'Контакты' }]
-      const BN = [{ id: 'home', label: 'Списки', icon: '📋' }, { id: 'about', label: 'О нас', icon: 'ℹ️' }, { id: 'contacts', label: 'Контакты', icon: '📞' }]
+      const BN = [{ id: 'home', label: 'Списки', icon: 'dashboard' }, { id: 'about', label: 'О нас', icon: 'info' }, { id: 'contacts', label: 'Контакты', icon: 'group' }]
 
-      const hdr = h('header', { className: 'hdr' })
-      const logo = h('div', { className: 'logo', onClick: () => go('home') }, 'Купика')
-      const hNav = h('nav', { className: 'hdr-nav' })
-      NAV.forEach(n => { const b = h('button', { className: 'nav-btn', id: 'hn' + n.id, type: 'button', onClick: () => go(n.id) }, n.label); hNav.appendChild(b) })
-      hdr.append(logo, hNav); app.appendChild(hdr)
+      const hdr = h('header', { className: 'sticky top-0 z-[100] h-16 glass-card !rounded-none !border-t-0 !border-x-0 flex items-center justify-between px-6' })
+      const logoIcon = h('div', { className: 'w-8 h-8 rounded-lg bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-lg shadow-emerald-500/20' },
+        h('span', { className: 'material-symbols-outlined text-[#0c0d10] text-xl font-bold' }, 'shopping_bag')
+      )
+      const logoText = h('span', { className: 'text-xl font-extrabold tracking-tight bg-gradient-to-r from-white to-[#8892a4] bg-clip-text text-transparent' }, 'Kupika')
+      const logo = h('div', { className: 'flex items-center gap-2 cursor-pointer group', onClick: () => go('home') }, logoIcon, logoText)
 
-      const main = h('main', { className: 'main' }); app.appendChild(main)
+      const hNav = h('nav', { className: 'hidden md:flex items-center gap-8' })
+      NAV.forEach(n => {
+        const b = h('button', { className: 'text-sm font-semibold text-[var(--text-muted)] hover:text-white transition-colors', id: 'hn' + n.id, type: 'button', onClick: () => go(n.id) }, n.label);
+        hNav.appendChild(b)
+      })
 
-      const bnav = h('nav', { className: 'bnav' })
-      BN.forEach(n => { const b = h('button', { className: 'bnav-btn', id: 'bn' + n.id, type: 'button', onClick: () => go(n.id) }, h('span', { className: 'bnav-icon' }, n.icon), n.label); bnav.appendChild(b) })
+      const hdrRight = h('div', { className: 'flex items-center gap-4' },
+        h('button', { className: 'p-2 rounded-full hover:bg-white/5 transition-colors' }, h('span', { className: 'material-symbols-outlined text-[var(--text-muted)]' }, 'search')),
+        h('div', { className: 'w-8 h-8 rounded-full border border-[var(--border-subtle)] bg-[#1f2229] flex items-center justify-center overflow-hidden' },
+          h('div', { className: 'text-[10px] font-bold' }, 'ME')
+        )
+      )
+
+      hdr.append(logo, hNav, hdrRight); app.appendChild(hdr)
+
+      const main = h('main', { className: 'flex-1 max-w-4xl w-full mx-auto px-6 py-8 pb-32 relative' }); app.appendChild(main)
+
+      const bnav = h('nav', { className: 'md:hidden fixed bottom-0 left-0 right-0 h-20 glass-card !rounded-none !border-b-0 border-t border-[var(--border-subtle)] flex items-center justify-around px-2 z-[150]' })
+      BN.forEach(n => {
+        const b = h('button', { className: 'flex flex-col items-center gap-1 text-[var(--text-muted)]', id: 'bn' + n.id, type: 'button', onClick: () => go(n.id) },
+          h('span', { className: 'material-symbols-outlined' }, n.icon),
+          h('span', { className: 'text-[10px] font-black uppercase' }, n.label)
+        );
+        bnav.appendChild(b)
+      })
       app.appendChild(bnav)
 
       function setActive(page) {
-        NAV.forEach(n => { const b = document.getElementById('hn' + n.id); if (b) b.className = 'nav-btn' + (page === n.id ? ' active' : '') })
-        BN.forEach(n => { const b = document.getElementById('bn' + n.id); if (b) b.className = 'bnav-btn' + (page === n.id ? ' active' : '') })
+        NAV.forEach(n => { const b = document.getElementById('hn' + n.id); if (b) b.className = 'text-sm font-semibold transition-colors ' + (page === n.id ? 'nav-active' : 'text-[var(--text-muted)] hover:text-white') })
+        BN.forEach(n => { const b = document.getElementById('bn' + n.id); if (b) b.className = 'flex flex-col items-center gap-1 ' + (page === n.id ? 'nav-active' : 'text-[var(--text-muted)]') })
       }
 
       function go(page) {
