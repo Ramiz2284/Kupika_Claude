@@ -914,6 +914,20 @@
     ]
     const UNITS = ['шт.', 'кг', 'г', 'л', 'мл', 'уп.', 'бут.', 'пач.']
 
+    // ── UPCitemdb lookup ────────────────────────────────────
+    async function lookupBarcode(barcode) {
+      try {
+        const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`)
+        const data = await res.json()
+        if (data && data.code === 'OK' && data.total > 0) {
+          return data.items[0]
+        }
+      } catch (e) {
+        console.warn('UPC lookup failed', e)
+      }
+      return null
+    }
+
     // ── DOM HELPERS ────────────────────────────────────────
     const genId = () => Math.random().toString(36).slice(2) + Date.now().toString(36)
     function h(tag, props, ...kids) {
@@ -1030,6 +1044,7 @@
       CATS.forEach(c => {
         const chip = h('button', {
           className: 'chip' + (c.id === 'other' ? ' active' : ''), type: 'button',
+          'data-cat': c.id,
           onClick: () => {
             chips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'))
             chip.classList.add('active'); selectedCat = c.id
@@ -1040,7 +1055,34 @@
 
       const scanBtn = h('button', {
         className: 'btn btn-secondary btn-icon', type: 'button', title: 'Сканировать штрихкод',
-        onClick: () => { closeModal(); openScanner(code => { nameInp.value = code; showAddItemModal(onAdd) }) }
+        onClick: () => {
+          closeModal(); openScanner(async code => {
+            // try lookup via UPCitemdb
+            const item = await lookupBarcode(code)
+            if (item) {
+              nameInp.value = item.title || code
+              // pick first available price
+              if (item.offers && item.offers.length) {
+                priceInp.value = item.offers[0].price || ''
+              }
+              // optional: set category based on item.category
+              if (item.category) {
+                const catId = CATS.find(c => item.category.toLowerCase().includes(c.id))?.id
+                if (catId) {
+                  selectedCat = catId
+                  chips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'))
+                  const catChip = chips.querySelector(`[data-cat="${catId}"]`)
+                  if (catChip) catChip.classList.add('active')
+                }
+              }
+              toast('✓ Товар найден в UPCitemdb', 'ok')
+            } else {
+              nameInp.value = code
+              toast('ⓘ Товар не найден, введите вручную', 'err')
+            }
+            showAddItemModal(onAdd)
+          })
+        }
       }, icoScan())
 
       const addBtn = h('button', {
