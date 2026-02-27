@@ -20,28 +20,59 @@
       }
     }
     :root {
-      --bg-deep: #0c0d10;
-      --surface: #16181d;
-      --surface-glass: rgba(22, 24, 29, 0.7);
-      --border-subtle: rgba(255, 255, 255, 0.06);
-      --accent-primary: #4ade80;
-      --accent-secondary: #22d3ee;
-      --text-muted: #8892a4;
+      --bg-deep: #020202;
+      --surface: #111111;
+      --surface-glass: rgba(17, 17, 17, 0.7);
+      --border-subtle: rgba(255, 255, 255, 0.05);
+      --accent-primary: #3df29c;
+      --accent-secondary: #35fada;
+      --text-muted: #888888;
     }
     .glass-card {
-      @apply bg-[var(--surface-glass)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl shadow-2xl;
+      @apply bg-[var(--surface-glass)] backdrop-blur-3xl border border-[var(--border-subtle)] rounded-[24px] shadow-2xl;
     }
     .premium-input {
-      @apply bg-[#1f2229] border-transparent focus:border-[var(--accent-primary)] focus:ring-0 rounded-xl transition-all duration-300 placeholder:text-[#535d72] text-sm py-3 px-4;
+      @apply bg-[#111111] border border-[var(--border-subtle)] focus:border-[var(--accent-primary)] focus:ring-0 rounded-2xl transition-all duration-300 placeholder:text-[#535d72] text-sm py-4 px-5;
     }
     .mono {
       font-family: 'JetBrains Mono', monospace;
     }
+    .currency-p {
+      @apply font-black;
+      font-family: 'Inter', sans-serif;
+      scale: 1.1;
+      margin-left: 2px;
+    }
+    .segmented-bar {
+      display: flex;
+      gap: 2px;
+      height: 6px;
+      width: 100%;
+    }
+    .segment {
+      flex: 1;
+      height: 100%;
+      background: #1a1a1a;
+      border-radius: 1px;
+    }
+    .segment.filled {
+      background: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
+    }
+    .avatar-stack {
+      display: flex;
+      align-items: center;
+    }
+    .avatar {
+      @apply w-6 h-6 rounded-full border-2 border-[#111111] -ml-2 first:ml-0 overflow-hidden;
+    }
     .nav-active {
-      @apply text-[var(--accent-primary)] font-bold;
+      @apply text-[var(--accent-primary)];
+    }
+    .btn-action-circle {
+      @apply w-10 h-10 rounded-full flex items-center justify-center bg-[#1a1a1a] text-white hover:bg-[#252525] transition-colors border border-[var(--border-subtle)];
     }
     .material-symbols-outlined {
-      font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     }
 
     /* Keep old structural animations that we still need inside JS */
@@ -619,8 +650,15 @@
       async function save(newItems) {
         items = newItems
         try { await updateDoc(doc(db, 'lists', listDoc.id), { items: newItems }) }
-        catch (e) { toast('Ошибка сохранения', 'err') }
+        catch (e) { toast('Error saving', 'err') }
       }
+
+      const showAdd = () => showAddItemModal(async item => {
+        await save([...items, item]); render(); toast('Item added ✓', 'ok')
+      })
+
+      const fabListener = () => { if (container.contains(hdr)) showAdd() }
+      document.addEventListener('app-fab-click', fabListener)
 
       function render() {
         container.innerHTML = ''
@@ -629,144 +667,90 @@
         const count = items.length
         const pct = count ? (doneCount / count) * 100 : 0
 
-        // Top bar
-        const topBar = h('div', { className: 'flex items-center gap-4 mb-6' })
-        topBar.appendChild(h('button', {
-          className: 'w-10 h-10 rounded-full bg-[#1f2229] border border-[var(--border-subtle)] flex items-center justify-center hover:bg-white/5 transition-colors',
-          type: 'button', onClick: onBack
-        }, h('span', { className: 'material-symbols-outlined' }, 'arrow_back')))
-
-        const titleArea = h('div', { className: 'flex-1 min-w-0 pointer-events-none' },
-          h('h2', { className: 'text-2xl font-extrabold tracking-tight truncate' }, listDoc.name),
-          h('div', { className: 'text-sm font-semibold text-[var(--text-muted)] flex items-center gap-2' },
-            `${count} товаров`,
-            h('span', { className: 'w-1 h-1 rounded-full bg-[var(--border-subtle)]' }),
-            `${doneCount} куплено`
-          )
+        const hdr = h('div', { className: 'flex items-center justify-between mb-10' })
+        const left = h('div', { className: 'flex items-center gap-4' },
+          h('button', { className: 'w-12 h-12 rounded-full bg-[#111] border border-[var(--border-subtle)] flex items-center justify-center', onClick: onBack },
+            h('span', { className: 'material-symbols-outlined' }, 'arrow_back')
+          ),
+          h('h2', { className: 'text-3xl font-black truncate max-w-[180px]' }, listDoc.name)
         )
-        topBar.appendChild(titleArea)
-        container.appendChild(topBar)
+        const right = h('div', { className: 'flex items-center gap-2' },
+          h('button', { className: 'btn-action-circle', onClick: sendWA }, h('span', { className: 'material-symbols-outlined text-[20px]' }, 'share')),
+          h('button', { className: 'btn-action-circle' }, h('span', { className: 'material-symbols-outlined text-[20px]' }, 'qr_code_scanner'))
+        )
+        hdr.append(left, right)
+        container.appendChild(hdr)
 
-        // Progress Budget Card
-        if (items.length > 0) {
-          const pcard = h('div', { className: 'glass-card p-5 mb-8' },
-            h('div', { className: 'flex justify-between items-end mb-3 pointer-events-none' },
-              h('div', {},
-                h('div', { className: 'text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1' }, 'Прогресс'),
-                h('div', { className: 'text-xl font-black text-[var(--accent-primary)]' }, `${Math.round(pct)}%`)
-              ),
-              h('div', { className: 'text-right' },
-                h('div', { className: 'text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-1' }, 'Сумма'),
-                h('div', { className: 'text-xl font-black mono text-[var(--accent-secondary)]' }, `${total.toFixed(0)}₽`)
-              )
-            ),
-            h('div', { className: 'h-3 w-full bg-[#1c1f26] rounded-full overflow-hidden pointer-events-none' },
-              h('div', { className: 'h-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] transition-all duration-500', style: `width:${pct}%` })
-            )
-          )
-          container.appendChild(pcard)
-        }
-
-        // Category filter
         const usedCats = [...new Set(items.map(it => it.category || 'other'))]
-        if (usedCats.length > 1) {
-          const chips = h('div', { className: 'flex flex-wrap gap-2 mb-6 no-scrollbar overflow-x-auto pb-1' })
+        if (usedCats.length > 0) {
+          const pills = h('div', { className: 'flex items-center gap-3 mb-10 overflow-x-auto no-scrollbar pb-2' })
           const mk = (id, label) => h('button', {
-            className: 'px-4 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap border ' +
-              (filterCat === id ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] border-[var(--accent-primary)]/30' : 'bg-[#1f2229] text-[var(--text-muted)] border-transparent hover:text-white'),
-            type: 'button',
+            className: 'px-6 py-2.5 rounded-full text-sm font-black transition-all whitespace-nowrap ' +
+              (filterCat === id ? 'bg-[#3df29c] text-[#020202]' : 'bg-[#111111] text-[var(--text-muted)] border border-[var(--border-subtle)]'),
             onClick: () => { filterCat = id; render() }
           }, label)
-          chips.appendChild(mk('all', 'Все'))
-          CATS.filter(c => usedCats.includes(c.id)).forEach(c => chips.appendChild(mk(c.id, c.label)))
-          container.appendChild(chips)
+          pills.appendChild(mk('all', 'All Items'))
+          CATS.filter(c => usedCats.includes(c.id)).forEach(c => pills.appendChild(mk(c.id, c.label)))
+          container.appendChild(pills)
         }
 
-        // Items View
         const filtered = filterCat === 'all' ? items : items.filter(it => (it.category || 'other') === filterCat)
-        const cardClass = 'glass-card divide-y divide-[var(--border-subtle)] overflow-hidden mb-6'
-        const listCard = h('div', { className: cardClass })
+        const listContainer = h('div', { className: 'glass-card p-2 mb-10' })
 
         if (items.length === 0) {
-          container.appendChild(h('div', { className: 'text-center py-12 glass-card border-dashed bg-transparent' },
-            h('div', { className: 'w-20 h-20 mx-auto mb-4 rounded-full bg-[#1f2229] flex items-center justify-center' },
-              h('span', { className: 'material-symbols-outlined text-[32px] text-[var(--text-muted)]' }, 'receipt_long')
-            ),
-            h('h3', { className: 'text-lg font-bold mb-1' }, 'Список пуст'),
-            h('p', { className: 'text-sm text-[var(--text-muted)]' }, 'Нажмите + чтобы начать')
-          ))
-        } else if (filtered.length === 0) {
-          container.appendChild(h('div', { className: 'text-center py-12 text-[var(--text-muted)] text-sm' }, 'Нет товаров в этой категории'))
+          listContainer.appendChild(h('div', { className: 'text-center py-20 text-[var(--text-muted)] font-black uppercase tracking-widest' }, 'List is empty'))
         } else {
-          const groups = {}
-          filtered.forEach(it => { const c = it.category || 'other'; if (!groups[c]) groups[c] = []; groups[c].push(it) })
-          const multiCat = Object.keys(groups).length > 1
+          filtered.forEach(item => {
+            const row = h('div', { className: 'p-4 flex items-center gap-4 transition-all ' + (item.done ? 'opacity-30' : '') })
 
-          for (const [catId, catItems] of Object.entries(groups)) {
-            if (multiCat) {
-              const ci = CATS.find(c => c.id === catId)
-              listCard.appendChild(h('div', { className: 'px-5 py-3 bg-[var(--surface)] text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]' }, ci?.label || '🛒 Другое'))
-            }
-            catItems.forEach(item => {
-              const chkLineClasses = item.done ? 'line-through text-[var(--text-muted)]' : 'text-white'
-              const chkBgMatches = item.done ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)]' : 'bg-transparent border-[var(--border-subtle)]'
+            const checkbox = h('button', {
+              className: 'w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ' +
+                (item.done ? 'bg-[#3df29c] border-[#3df29c]' : 'bg-[#111111] border-[var(--border-subtle)]'),
+              onClick: () => save(items.map(it => it.id === item.id ? { ...it, done: !it.done } : it)).then(render)
+            }, item.done ? h('span', { className: 'material-symbols-outlined text-[#020202] text-xl font-black' }, 'check') : null)
 
-              const chk = h('button', {
-                className: `w-6 h-6 rounded border flex items-center justify-center shrink-0 transition-colors ${chkBgMatches}`,
-                type: 'button',
-                onClick: async () => { await save(items.map(it => it.id === item.id ? { ...it, done: !it.done } : it)); render() }
-              }, item.done ? h('span', { className: 'material-symbols-outlined text-[#0c0d10] text-[16px] font-bold' }, 'check') : null)
+            const info = h('div', { className: 'flex-1 min-w-0' },
+              h('div', { className: 'text-lg font-bold ' + (item.done ? 'line-through' : '') }, item.name),
+              h('div', { className: 'text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] mt-1' }, `${item.qty} UNITS • ${item.category || 'OTHER'}`)
+            )
 
-              const del = h('button', {
-                className: 'p-2 rounded-lg text-[var(--text-muted)] hover:bg-red-500/10 hover:text-red-400 opacity-0 md:opacity-0 md:group-hover:opacity-100 transition-all shrink-0 active:opacity-100',
-                type: 'button', title: 'Удалить',
-                onClick: async () => { await save(items.filter(it => it.id !== item.id)); render() }
-              }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'delete'))
+            const price = h('div', { className: 'text-right flex items-center gap-3' },
+              h('div', { className: 'font-black text-white text-lg mono' },
+                item.price > 0 ? `${(item.price * item.qty).toLocaleString()} ` : '',
+                item.price > 0 ? h('span', { className: 'text-[var(--accent-primary)] text-sm ml-1' }, 'P') : ''
+              ),
+              h('button', {
+                className: 'text-[var(--text-muted)] hover:text-red-400 p-2',
+                onClick: () => { if (confirm('Delete?')) save(items.filter(it => it.id !== item.id)).then(render) }
+              }, h('span', { className: 'material-symbols-outlined text-[20px]' }, 'delete'))
+            )
 
-              const metaText = `${item.qty} ${item.unit}${item.price ? ` · ${item.price}₽` : ''}${item.barcode ? ` · <span class="mono tracking-tight bg-white/5 py-0.5 px-1.5 rounded text-[10px] text-[var(--accent-secondary)]">${item.barcode}</span>` : ''}`
-              const metaEl = h('div', { className: 'text-xs text-[var(--text-muted)] mt-1 font-semibold flex items-center gap-1 flex-wrap' })
-              metaEl.innerHTML = metaText
-
-              const row = h('div', { className: `p-4 flex items-center gap-4 group transition-colors hover:bg-white/5 ${item.done ? 'opacity-50' : ''}` },
-                chk,
-                h('div', { className: 'flex-1 min-w-0 cursor-pointer pointer-events-auto', onClick: async () => { await save(items.map(it => it.id === item.id ? { ...it, done: !it.done } : it)); render() } },
-                  h('div', { className: `text-[15px] font-bold truncate transition-colors ${chkLineClasses}` }, item.name),
-                  metaEl
-                ),
-                item.price > 0 ? h('div', { className: 'font-black mono text-[#e2e4e9] pointer-events-none' }, `${(item.price * item.qty).toFixed(0)}₽`) : null,
-                del
-              )
-              listCard.appendChild(row)
-            })
-          }
-          container.appendChild(listCard)
-        }
-
-        // Action Buttons Row (Reset & Share)
-        if (items.length > 0) {
-          const actionRow = h('div', { className: 'flex gap-3 mb-6' })
-          if (doneCount > 0) {
-            actionRow.appendChild(h('button', {
-              className: 'flex-1 py-3 rounded-xl bg-[#1f2229] border border-[var(--border-subtle)] text-white font-bold text-sm hover:bg-[#2e3447] transition-colors flex items-center justify-center gap-2',
-              type: 'button',
-              onClick: () => save(items.map(it => ({ ...it, done: false }))).then(() => { render(); toast('Список сброшен', 'ok') })
-            }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'refresh'), 'Сбросить'))
-          }
-          actionRow.appendChild(h('button', {
-            className: 'flex-[2] py-3 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 text-[#25D366] font-bold text-sm hover:bg-[#25D366]/20 transition-colors flex items-center justify-center gap-2',
-            type: 'button', onClick: sendWA
-          }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'share'), 'В WhatsApp'))
-          container.appendChild(actionRow)
-        }
-
-        // FAB for generic UI
-        const fab = h('button', {
-          className: 'fixed bottom-24 right-6 md:bottom-12 w-14 h-14 rounded-2xl bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-2xl shadow-emerald-500/40 transform active:scale-95 transition-transform z-50',
-          type: 'button', onClick: () => showAddItemModal(async item => {
-            await save([...items, item]); render(); toast('Товар добавлен ✓', 'ok')
+            row.append(checkbox, info, price)
+            listContainer.appendChild(row)
           })
-        }, h('span', { className: 'material-symbols-outlined text-[#0c0d10] font-black text-3xl' }, 'add'))
-        container.appendChild(fab)
+        }
+        container.appendChild(listContainer)
+
+        // Summary
+        const summary = h('div', { className: 'glass-card p-8 text-center mb-10' })
+        summary.append(
+          h('div', { className: 'text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-4' }, 'ITEMS TOTAL'),
+          h('div', { className: 'text-5xl font-black mb-10 flex items-center justify-center gap-4' },
+            total.toLocaleString(),
+            h('span', { className: 'text-[#3df29c] text-3xl mt-2' }, 'P')
+          ),
+          h('div', { className: 'grid grid-cols-2 gap-6' },
+            h('button', {
+              className: 'py-5 rounded-2xl bg-[#111] border border-[var(--border-subtle)] font-black text-sm flex items-center justify-center gap-2',
+              onClick: () => save(items.map(it => ({ ...it, done: false }))).then(render)
+            }, h('span', { className: 'material-symbols-outlined' }, 'refresh'), 'Reset'),
+            h('button', {
+              className: 'py-5 rounded-2xl bg-[#3df29c] text-[#020202] font-black text-sm flex items-center justify-center gap-2',
+              onClick: sendWA
+            }, h('span', { className: 'material-symbols-outlined' }, 'send'), 'Share List')
+          )
+        )
+        container.appendChild(summary)
       }
 
       function sendWA() {
@@ -780,6 +764,7 @@
       }
 
       render()
+      return () => document.removeEventListener('app-fab-click', fabListener)
     }
 
     // ── HOME PAGE ──────────────────────────────────────────
@@ -795,105 +780,125 @@
           return
         }
 
-        container.appendChild(h('div', { className: 'mb-10 text-center animate-fade-in-up' },
-          h('h1', { className: 'text-4xl md:text-5xl font-extrabold tracking-tight mb-4' },
-            'Ваши ',
-            h('span', { className: 'bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] bg-clip-text text-transparent' }, 'покупки')
-          ),
-          h('p', { className: 'text-[var(--text-muted)] text-base md:text-lg max-w-md mx-auto' },
-            'Создавайте списки, отмечайте купленное, делитесь с близкими.'
-          )
+        container.appendChild(h('div', { className: 'mb-8 animate-fade-in text-left' },
+          h('h1', { className: 'text-4xl font-black tracking-tight mb-2' }, 'My Shopping Lists'),
+          h('p', { className: 'text-[var(--text-muted)] text-base font-bold' }, 'Manage your items and household needs')
         ))
 
         container.appendChild(h('button', {
-          className: 'w-full glass-card hover:bg-white/5 active:bg-white/10 transition-colors p-4 mb-8 flex justify-center items-center gap-2 border-[var(--accent-primary)]/30 text-[var(--accent-primary)] font-bold text-lg',
+          className: 'w-full py-5 mb-10 rounded-2xl bg-[#3df29c] text-[#020202] font-black flex justify-center items-center gap-2 shadow-xl shadow-[#3df29c]/10 text-lg hover:opacity-90 active:scale-[0.98] transition-all',
           type: 'button', onClick: showCreate
         },
-          h('span', { className: 'material-symbols-outlined' }, 'add_circle'),
-          'Новый список'
+          h('span', { className: 'material-symbols-outlined font-black' }, 'add'),
+          'New List'
         ))
 
         if (!lists.length) {
           container.appendChild(h('div', { className: 'text-center py-12' },
-            h('div', { className: 'w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-tr from-[#1f2229] to-[#16181d] flex items-center justify-center border border-[var(--border-subtle)] shadow-xl' },
-              h('span', { className: 'material-symbols-outlined text-[48px] text-[var(--text-muted)]' }, 'shopping_cart_checkout')
+            h('div', { className: 'w-24 h-24 mx-auto mb-6 rounded-3xl bg-[#111111] border border-[var(--border-subtle)] flex items-center justify-center' },
+              h('span', { className: 'material-symbols-outlined text-[48px] text-[#555555]' }, 'shopping_basket')
             ),
-            h('h3', { className: 'text-xl font-bold mb-2 text-white' }, 'Списков пока нет'),
-            h('p', { className: 'text-[var(--text-muted)]' }, 'Создайте первый список покупок выше')
+            h('h3', { className: 'text-xl font-bold mb-2 text-white' }, 'No lists yet'),
+            h('p', { className: 'text-[var(--text-muted)]' }, 'Create your first one above')
           ))
           return
         }
 
-        lists.forEach((list, i) => {
-          const total = (list.items || []).reduce((s, it) => s + (it.price * it.qty), 0)
-          const done = (list.items || []).filter(it => it.done).length
-          const count = (list.items || []).length
-          const pct = count ? Math.round((done / count) * 100) : 0
-          const delay = (i * 0.05).toFixed(2)
+        const todayItems = lists.filter(l => l.createdAt && (Date.now() - l.createdAt.toDate()) < 86400000)
+        const olderItems = lists.filter(l => l.createdAt && (Date.now() - l.createdAt.toDate()) >= 86400000)
 
-          const delBtn = h('button', {
-            className: 'p-2 mt-1 rounded-xl text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-colors z-10', type: 'button', title: 'Удалить',
-            onClick: async e => {
-              e.stopPropagation()
-              if (!confirm(`Удалить «${list.name}»?`)) return
-              await deleteDoc(doc(db, 'lists', list.id)); toast('Список удалён', 'ok')
+        const renderSection = (title, items) => {
+          if (!items.length) return
+          container.appendChild(h('div', { className: 'text-[10px] font-black uppercase tracking-[0.2em] text-[#3df29c] mb-6 mt-4 ml-1 pl-1 border-l-2 border-[#3df29c]/30' }, title))
+
+          items.forEach((list, i) => {
+            const total = (list.items || []).reduce((s, it) => s + (it.price * it.qty), 0)
+            const done = (list.items || []).filter(it => it.done).length
+            const count = (list.items || []).length
+            const pct = count ? (done / count) * 100 : 0
+            const delay = (i * 0.05).toFixed(2)
+
+            const segments = h('div', { className: 'segmented-bar mb-6' })
+            for (let s = 0; s < 10; s++) {
+              const isFilled = (s + 1) <= Math.ceil(pct / 10)
+              segments.appendChild(h('div', { className: 'segment ' + (isFilled ? 'filled' : '') }))
             }
-          }, h('span', { className: 'material-symbols-outlined text-[20px]' }, 'delete'))
 
-          const card = h('div', {
-            className: 'glass-card hover:border-[var(--accent-primary)]/50 transition-all duration-300 p-5 md:p-6 mb-4 cursor-pointer group animate-fade-in-up',
-            style: `animation-delay: ${delay}s;`,
-            onClick: () => { openDoc = list; draw() }
-          },
-            h('div', { className: 'flex justify-between items-start mb-4' },
-              h('div', { className: 'flex-1 min-w-0 pr-4' },
-                h('h3', { className: 'text-lg font-bold mb-1 group-hover:text-[var(--accent-primary)] transition-colors truncate' }, list.name),
-                h('div', { className: 'flex items-center gap-3 text-xs font-semibold text-[var(--text-muted)]' },
-                  h('span', { className: 'flex items-center gap-1 ' + (done === count && count > 0 ? 'text-[var(--accent-primary)]' : '') },
-                    h('span', { className: 'material-symbols-outlined text-[14px]' }, 'check_circle'),
-                    `${done}/${count} куплено`
-                  )
-                )
-              ),
-              h('div', { className: 'flex items-start gap-4 shrink-0 text-right' },
-                h('div', { className: 'flex flex-col items-end pointer-events-none' },
-                  total > 0 ? h('div', { className: 'text-xl font-black mono text-[var(--accent-secondary)]' }, `${total.toFixed(0)}₽`) : null,
-                  total > 0 ? h('div', { className: 'text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-bold mt-1' }, 'Сумма') : null
-                ),
-                delBtn
-              )
-            ),
-            h('div', { className: 'h-2 w-full bg-[#1c1f26] rounded-full overflow-hidden' },
-              h('div', { className: 'h-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] transition-all duration-500', style: `width: ${pct}%` })
+            const avatars = h('div', { className: 'avatar-stack' },
+              h('div', { className: 'avatar bg-blue-500' }),
+              h('div', { className: 'avatar bg-teal-500' }),
+              h('div', { className: 'avatar bg-[#222] text-[8px] flex items-center justify-center font-bold text-[var(--accent-primary)]' }, `+2`),
+              h('span', { className: 'ml-3 text-[11px] font-bold text-[var(--text-muted)]' }, 'Shared with Family')
             )
-          )
-          container.appendChild(card)
-        })
+
+            const card = h('div', {
+              className: 'glass-card p-6 mb-6 cursor-pointer group active:scale-[0.99] transition-all animate-fade-in-up',
+              style: `animation-delay: ${delay}s;`,
+              onClick: () => { openDoc = list; draw() }
+            },
+              h('div', { className: 'flex justify-between items-start mb-6' },
+                h('div', { className: 'flex-1 min-w-0 pr-4' },
+                  h('h3', { className: 'text-2xl font-black mb-4 group-hover:text-[var(--accent-primary)] transition-colors truncate' }, list.name),
+                  avatars
+                ),
+                h('button', {
+                  className: 'text-[var(--text-muted)] hover:text-white transition-colors p-1',
+                  onClick: e => { e.stopPropagation(); if (confirm(`Delete "${list.name}"?`)) deleteDoc(doc(db, 'lists', list.id)) }
+                }, h('span', { className: 'material-symbols-outlined' }, 'more_horiz'))
+              ),
+              segments,
+              h('div', { className: 'flex justify-between items-end' },
+                h('div', {},
+                  h('div', { className: 'text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2' }, 'PROGRESS'),
+                  h('div', { className: 'text-[11px] font-black' },
+                    h('span', { className: 'text-[var(--accent-primary)]' }, done),
+                    h('span', { className: 'text-[var(--text-muted)] mx-1' }, '/'),
+                    h('span', { className: 'text-[var(--accent-primary)]' }, `${count} ITEMS`)
+                  )
+                ),
+                h('div', { className: 'text-right' },
+                  h('div', { className: 'flex items-center gap-2 text-white font-black text-xl mb-3' },
+                    h('span', { className: 'material-symbols-outlined text-[var(--text-muted)] text-lg' }, 'payments'),
+                    `${total.toLocaleString()} `, h('span', { className: 'currency-p' }, 'P')
+                  ),
+                  h('div', { className: 'px-3 py-1 bg-[#1a1a1a] rounded-lg text-[10px] font-black tracking-widest text-[#3df29c] uppercase inline-block' }, 'ACTIVE')
+                )
+              )
+            )
+            container.appendChild(card)
+          })
+        }
+
+        renderSection('TODAY', todayItems.length ? todayItems : (lists.length ? lists.slice(0, 1) : []))
+        renderSection('YESTERDAY', olderItems.length ? olderItems : (lists.length > 1 ? lists.slice(1) : []))
       }
 
       function showCreate() {
-        const inp = h('input', { className: 'premium-input w-full mb-6', placeholder: 'Название списка...', type: 'text' })
+        const inp = h('input', { className: 'premium-input w-full mb-6', placeholder: 'List name...', type: 'text' })
         const ok = h('button', {
-          className: 'w-full py-3 rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-[#0c0d10] font-black text-sm uppercase tracking-wider hover:opacity-90 transition-opacity flex items-center justify-center gap-2',
+          className: 'w-full py-4 rounded-2xl bg-[#3df29c] text-[#020202] font-black uppercase tracking-widest hover:opacity-90 transition-opacity flex items-center justify-center gap-2',
           type: 'button',
           onClick: async () => {
             const name = inp.value.trim(); if (!name) { inp.focus(); return }
             closeModal()
-            try { await addDoc(collection(db, 'lists'), { uid, name, items: [], createdAt: serverTimestamp() }); toast('Список создан ✓', 'ok') }
-            catch (e) { toast('Ошибка: ' + e.message, 'err') }
+            try { await addDoc(collection(db, 'lists'), { uid, name, items: [], createdAt: serverTimestamp() }); toast('List created', 'ok') }
+            catch (e) { toast(e.message, 'err') }
           }
-        }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'add'), 'Создать')
+        }, h('span', { className: 'material-symbols-outlined' }, 'add_circle'), 'Create')
         inp.addEventListener('keydown', e => { if (e.key === 'Enter') ok.click() })
         openModal([
-          h('div', { className: 'text-lg font-extrabold mb-6' }, 'Новый список'),
+          h('div', { className: 'text-xl font-black mb-6 flex items-center gap-3' }, h('span', { className: 'material-symbols-outlined text-[var(--accent-primary)]' }, 'playlist_add'), 'New Shopping List'),
           inp,
-          h('div', { className: 'grid grid-cols-2 gap-3' },
-            h('button', { className: 'py-3 rounded-xl bg-[#1f2229] border border-[var(--border-subtle)] text-white font-bold text-sm hover:bg-[#2e3447] transition-colors', type: 'button', onClick: closeModal }, 'Отмена'),
+          h('div', { className: 'grid grid-cols-2 gap-4' },
+            h('button', { className: 'py-4 rounded-2xl bg-[#111111] border border-[var(--border-subtle)] text-white font-black hover:bg-[#1a1a1a] transition-colors', type: 'button', onClick: closeModal }, 'CANCEL'),
             ok
           )
         ])
         setTimeout(() => inp.focus(), 60)
       }
+
+      const fabListener = () => { if (curPage === 'home') showCreate() }
+      document.addEventListener('app-fab-click', fabListener)
 
       const q = query(collection(db, 'lists'), where('uid', '==', uid), orderBy('createdAt', 'desc'))
       const unsub = onSnapshot(q, snap => {
@@ -901,17 +906,14 @@
         draw()
       }, err => {
         if (err.code === 'failed-precondition') {
-          container.innerHTML = ''
-          container.appendChild(h('div', { className: 'glass-card p-6 border-amber-500/50' },
-            h('p', { className: 'text-amber-500 font-extrabold mb-2' }, '⚠️ Нужен индекс Firestore'),
-            h('p', { className: 'text-[var(--text-muted)] text-sm' },
-              'Firebase Console → Firestore → Indexes → создайте составной индекс: коллекция lists, поля: uid ASC + createdAt DESC.'
-            )
-          ))
+          container.innerHTML = '<div class="glass-card p-6">Index required in Firestore.</div>'
         } else { toast(err.message, 'err') }
       })
 
-      return () => unsub()
+      return () => {
+        unsub()
+        document.removeEventListener('app-fab-click', fabListener)
+      }
     }
 
     // ── ABOUT ──────────────────────────────────────────────
@@ -949,58 +951,69 @@
     function buildApp(uid) {
       const app = document.getElementById('app')
       app.innerHTML = ''
-      app.className = 'flex flex-col min-h-screen bg-[var(--bg-deep)] text-white'
+      app.className = 'flex flex-col min-h-screen bg-[var(--bg-deep)] text-white overflow-x-hidden'
       let curPage = 'home', cleanup = null
 
-      const NAV = [{ id: 'home', label: 'Списки' }, { id: 'about', label: 'О нас' }, { id: 'contacts', label: 'Контакты' }]
-      const BN = [{ id: 'home', label: 'Списки', icon: 'dashboard' }, { id: 'about', label: 'О нас', icon: 'info' }, { id: 'contacts', label: 'Контакты', icon: 'group' }]
+      const BN = [
+        { id: 'home', label: 'LISTS', icon: 'grid_view' },
+        { id: 'history', label: 'HISTORY', icon: 'history' },
+        { id: 'add', label: '', icon: 'add' },
+        { id: 'friends', label: 'FRIENDS', icon: 'group' },
+        { id: 'settings', label: 'SETTINGS', icon: 'settings' }
+      ]
 
-      const hdr = h('header', { className: 'sticky top-0 z-[100] h-16 glass-card !rounded-none !border-t-0 !border-x-0 flex items-center justify-between px-6' })
-      const logoIcon = h('div', { className: 'w-8 h-8 rounded-lg bg-gradient-to-tr from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-lg shadow-emerald-500/20' },
-        h('span', { className: 'material-symbols-outlined text-[#0c0d10] text-xl font-bold' }, 'shopping_bag')
+      const hdr = h('header', { className: 'sticky top-0 z-[100] h-16 bg-[var(--bg-deep)] flex items-center justify-between px-6' })
+      const logoIcon = h('div', { className: 'w-10 h-10 rounded-xl bg-[#37ff9d]/20 border border-[#37ff9d]/30 flex items-center justify-center text-[#37ff9d]' },
+        h('span', { className: 'material-symbols-outlined text-xl font-bold' }, 'shopping_bag')
       )
-      const logoText = h('span', { className: 'text-xl font-extrabold tracking-tight bg-gradient-to-r from-white to-[#8892a4] bg-clip-text text-transparent' }, 'Kupika')
-      const logo = h('div', { className: 'flex items-center gap-2 cursor-pointer group', onClick: () => go('home') }, logoIcon, logoText)
-
-      const hNav = h('nav', { className: 'hidden md:flex items-center gap-8' })
-      NAV.forEach(n => {
-        const b = h('button', { className: 'text-sm font-semibold text-[var(--text-muted)] hover:text-white transition-colors', id: 'hn' + n.id, type: 'button', onClick: () => go(n.id) }, n.label);
-        hNav.appendChild(b)
-      })
+      const logoText = h('span', { className: 'text-xl font-extrabold tracking-tight text-white ml-2' }, 'Kupika')
+      const logo = h('div', { className: 'flex items-center cursor-pointer', onClick: () => go('home') }, logoIcon, logoText)
 
       const hdrRight = h('div', { className: 'flex items-center gap-4' },
-        h('button', { className: 'p-2 rounded-full hover:bg-white/5 transition-colors' }, h('span', { className: 'material-symbols-outlined text-[var(--text-muted)]' }, 'search')),
-        h('div', { className: 'w-8 h-8 rounded-full border border-[var(--border-subtle)] bg-[#1f2229] flex items-center justify-center overflow-hidden' },
-          h('div', { className: 'text-[10px] font-bold' }, 'ME')
-        )
+        h('button', { className: 'text-[var(--text-muted)] p-1 hover:text-white transition-colors' }, h('span', { className: 'material-symbols-outlined' }, 'search')),
+        h('div', { className: 'w-8 h-8 rounded-full bg-[#1a1a1a] border border-[var(--border-subtle)] flex items-center justify-center text-[10px] font-black' }, 'JD')
       )
+      hdr.append(logo, hdrRight)
 
-      hdr.append(logo, hNav, hdrRight); app.appendChild(hdr)
+      const main = h('main', { className: 'flex-1 p-6 md:px-10 max-w-2xl mx-auto w-full pb-32 animate-fade-in' })
+      const bnav = h('nav', { className: 'fixed bottom-0 left-0 right-0 z-[200] h-20 bg-[#0c0c0c] border-t border-[var(--border-subtle)] flex items-center justify-between px-4 sm:px-10' })
 
-      const main = h('main', { className: 'flex-1 max-w-4xl w-full mx-auto px-6 py-8 pb-32 relative' }); app.appendChild(main)
-
-      const bnav = h('nav', { className: 'md:hidden fixed bottom-0 left-0 right-0 h-20 glass-card !rounded-none !border-b-0 border-t border-[var(--border-subtle)] flex items-center justify-around px-2 z-[150]' })
-      BN.forEach(n => {
-        const b = h('button', { className: 'flex flex-col items-center gap-1 text-[var(--text-muted)]', id: 'bn' + n.id, type: 'button', onClick: () => go(n.id) },
-          h('span', { className: 'material-symbols-outlined' }, n.icon),
-          h('span', { className: 'text-[10px] font-black uppercase' }, n.label)
-        );
-        bnav.appendChild(b)
-      })
-      app.appendChild(bnav)
-
-      function setActive(page) {
-        NAV.forEach(n => { const b = document.getElementById('hn' + n.id); if (b) b.className = 'text-sm font-semibold transition-colors ' + (page === n.id ? 'nav-active' : 'text-[var(--text-muted)] hover:text-white') })
-        BN.forEach(n => { const b = document.getElementById('bn' + n.id); if (b) b.className = 'flex flex-col items-center gap-1 ' + (page === n.id ? 'nav-active' : 'text-[var(--text-muted)]') })
+      function renderBN() {
+        bnav.innerHTML = ''
+        BN.forEach((n, idx) => {
+          if (idx === 2) {
+            const fab = h('button', {
+              className: 'w-14 h-14 -mt-10 rounded-2xl bg-gradient-to-tr from-[#3df29c] to-[#35fada] flex items-center justify-center shadow-xl shadow-[#3df29c]/20 text-[#020202] transform transition-transform active:scale-90',
+              onClick: () => {
+                document.dispatchEvent(new CustomEvent('app-fab-click'))
+              }
+            }, h('span', { className: 'material-symbols-outlined font-black text-3xl' }, 'add'))
+            bnav.appendChild(fab)
+            return
+          }
+          const isActive = curPage === n.id
+          const btn = h('button', {
+            className: 'flex flex-col items-center gap-1 transition-all ' + (isActive ? 'text-[var(--accent-primary)]' : 'text-[#555555]'),
+            onClick: () => go(n.id)
+          },
+            h('span', { className: 'material-symbols-outlined text-[24px]' }, n.icon),
+            h('span', { className: 'text-[9px] font-black tracking-widest uppercase' }, n.label)
+          )
+          bnav.appendChild(btn)
+        })
       }
 
       function go(page) {
-        if (cleanup) { cleanup(); cleanup = null }
-        curPage = page; setActive(page); main.innerHTML = ''
-        if (page === 'home') cleanup = renderHomePage(main, uid) || null
-        else if (page === 'about') renderAbout(main)
-        else if (page === 'contacts') renderContacts(main)
+        if (cleanup) cleanup(); curPage = page
+        renderBN(); main.innerHTML = ''
+        window.scrollTo(0, 0)
+        if (page === 'home') cleanup = renderHomePage(main, uid)
+        else if (page === 'history') main.innerHTML = '<div class="text-center py-20 text-[var(--text-muted)]">History coming soon...</div>'
+        else if (page === 'friends') main.innerHTML = '<div class="text-center py-20 text-[var(--text-muted)]">Friends coming soon...</div>'
+        else if (page === 'settings') main.innerHTML = '<div class="text-center py-20 text-[var(--text-muted)]">Settings coming soon...</div>'
       }
+
+      app.append(hdr, main, bnav)
       go('home')
     }
 
