@@ -727,7 +727,16 @@
 
             const info = h('div', { className: 'flex-1 min-w-0' },
               h('div', { className: 'text-lg font-bold ' + (item.done ? 'line-through' : '') }, item.name),
-              h('div', { className: 'text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] mt-1' }, `${item.qty} UNITS • ${item.category || 'OTHER'}`)
+              h('div', { className: 'text-[10px] uppercase font-black tracking-widest text-[var(--text-muted)] mt-1' }, `${item.qty} UNITS • ${item.category || 'OTHER'}`),
+              item.barcode ? h('div', { className: 'flex items-center gap-1.5 mt-1.5' },
+                h('span', { className: 'material-symbols-outlined text-[12px] text-[var(--text-muted)]' }, 'barcode'),
+                h('a', {
+                  className: 'font-mono text-[11px] text-[var(--accent-secondary)] tracking-widest bg-white/5 px-2 py-0.5 rounded-lg hover:bg-white/10 hover:text-white transition-colors cursor-pointer',
+                  href: `https://www.google.com/search?q=${encodeURIComponent(item.barcode)}&tbm=isch`,
+                  target: '_blank',
+                  rel: 'noopener'
+                }, item.barcode)
+              ) : null
             )
 
             const price = h('div', { className: 'text-right flex items-center gap-3' },
@@ -871,9 +880,9 @@
                   avatars
                 ),
                 h('button', {
-                  className: 'text-[var(--text-muted)] hover:text-white transition-colors p-1',
+                  className: 'text-[var(--text-muted)] hover:text-red-400 hover:bg-red-400/10 transition-colors p-2 rounded-xl',
                   onClick: e => { e.stopPropagation(); if (confirm(`Delete "${list.name}"?`)) deleteDoc(doc(db, 'lists', list.id)) }
-                }, h('span', { className: 'material-symbols-outlined' }, 'more_horiz'))
+                }, h('span', { className: 'material-symbols-outlined text-[20px]' }, 'delete'))
               ),
               segments,
               h('div', { className: 'flex justify-between items-end' },
