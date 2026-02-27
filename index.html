@@ -914,16 +914,30 @@
     ]
     const UNITS = ['шт.', 'кг', 'г', 'л', 'мл', 'уп.', 'бут.', 'пач.']
 
-    // ── UPCitemdb lookup ────────────────────────────────────
+    // ── Open Food Facts lookup ──────────────────────────────
     async function lookupBarcode(barcode) {
+      if (!barcode) return null
       try {
-        const res = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`)
+        const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`)
         const data = await res.json()
-        if (data && data.code === 'OK' && data.total > 0) {
-          return data.items[0]
+        if (data && data.status === 1 && data.product) {
+          const p = data.product
+          const title = p.product_name_ru || p.product_name || p.generic_name || ''
+          const brand = p.brands || ''
+
+          // Простейшая эвристика категорий по тегам OFF
+          let category = 'other'
+          const tags = (p.categories_tags || []).join(' ').toLowerCase()
+          if (tags.includes('dairy') || tags.includes('milk') || tags.includes('cheese')) category = 'dairy'
+          else if (tags.includes('meat') || tags.includes('poultry') || tags.includes('fish') || tags.includes('seafood')) category = 'meat'
+          else if (tags.includes('plant-based') || tags.includes('vegetable') || tags.includes('fruit')) category = 'produce'
+          else if (tags.includes('bread') || tags.includes('bakery') || tags.includes('pastries')) category = 'bakery'
+          else if (tags.includes('beverage') || tags.includes('drink')) category = 'drinks'
+
+          return { title, brand, category, offers: [] }
         }
       } catch (e) {
-        console.warn('UPC lookup failed', e)
+        console.warn('Open Food Facts lookup failed', e)
       }
       return null
     }
