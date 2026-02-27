@@ -1267,18 +1267,18 @@
     }
 
     // ── ADD ITEM MODAL ─────────────────────────────────────
-    function showAddItemModal(onAdd) {
-      const nameInp = h('input', { className: 'inp', placeholder: 'Молоко, хлеб...', type: 'text' })
-      const barcodeInp = h('input', { className: 'inp', placeholder: 'Штрихкод...', type: 'text', inputmode: 'numeric' })
-      const qtyInp = h('input', { className: 'inp', type: 'number', min: '0.01', step: '0.01', value: '1' })
-      const unitSel = h('select', { className: 'inp' }, ...UNITS.map(u => h('option', { value: u }, u)))
-      const priceInp = h('input', { className: 'inp', type: 'number', min: '0', placeholder: '0', step: '0.01' })
-      let selectedCat = 'other'
+    function showAddItemModal(onAdd, initialState = {}) {
+      const nameInp = h('input', { className: 'inp', placeholder: 'Молоко, хлеб...', type: 'text', value: initialState.name || '' })
+      const barcodeInp = h('input', { className: 'inp', placeholder: 'Штрихкод...', type: 'text', inputmode: 'numeric', value: initialState.barcode || '' })
+      const qtyInp = h('input', { className: 'inp', type: 'number', min: '0.01', step: '0.01', value: initialState.qty || '1' })
+      const unitSel = h('select', { className: 'inp' }, ...UNITS.map(u => h('option', { value: u, selected: u === initialState.unit }, u)))
+      const priceInp = h('input', { className: 'inp', type: 'number', min: '0', placeholder: '0', step: '0.01', value: initialState.price || '' })
+      let selectedCat = initialState.category || 'other'
 
       const chips = h('div', { className: 'chips' })
       CATS.forEach(c => {
         const chip = h('button', {
-          className: 'chip' + (c.id === 'other' ? ' active' : ''), type: 'button',
+          className: 'chip' + (c.id === selectedCat ? ' active' : ''), type: 'button',
           'data-cat': c.id,
           onClick: () => {
             chips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'))
@@ -1289,25 +1289,28 @@
       })
 
       function applyFoundItem(item, code) {
-        barcodeInp.value = code || ''
+        const newState = {
+          name: nameInp.value,
+          barcode: code || barcodeInp.value,
+          qty: qtyInp.value,
+          unit: unitSel.value,
+          price: priceInp.value,
+          category: selectedCat
+        }
+
         if (item) {
-          nameInp.value = item.title || code
-          if (item.offers && item.offers.length) priceInp.value = item.offers[0].price || ''
+          newState.name = item.title || code
+          if (item.offers && item.offers.length) newState.price = item.offers[0].price || ''
           if (item.category) {
             const catId = CATS.find(c => item.category.toLowerCase().includes(c.id))?.id
-            if (catId) {
-              selectedCat = catId
-              chips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'))
-              const catChip = chips.querySelector(`[data-cat="${catId}"]`)
-              if (catChip) catChip.classList.add('active')
-            }
+            if (catId) newState.category = catId
           }
           toast('✓ Товар найден', 'ok')
         } else {
-          nameInp.value = code
+          newState.name = newState.name || code
           toast('ⓘ Товар не найден, введите вручную', 'err')
         }
-        showAddItemModal(onAdd)
+        showAddItemModal(onAdd, newState)
       }
 
       const scanBtn = h('button', {
