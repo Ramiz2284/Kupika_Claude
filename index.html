@@ -547,7 +547,7 @@
     // ── ADD ITEM MODAL ─────────────────────────────────────
     function showAddItemModal(onAdd, initialState = {}) {
       const nameInp = h('input', { className: 'premium-input w-full col-span-2 md:col-span-1', placeholder: 'Молоко, хлеб...', type: 'text', value: initialState.name || '' })
-      const barcodeInp = h('input', { className: 'premium-input w-full font-mono text-sm pl-9', placeholder: 'Штрихкод...', type: 'text', inputmode: 'numeric', value: initialState.barcode || '' })
+      const barcodeInp = h('input', { className: 'premium-input w-full font-mono text-sm pl-12', placeholder: 'Штрихкод...', type: 'text', inputmode: 'numeric', value: initialState.barcode || '' })
       const qtyInp = h('input', { className: 'premium-input w-full', type: 'number', min: '0.01', step: '0.01', value: initialState.qty || '1' })
       const unitSel = h('select', { className: 'premium-input w-full appearance-none bg-no-repeat bg-[center_right_1rem] bg-[url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'8\' viewBox=\'0 0 12 8\'%3E%3Cpath d=\'M1 1l5 5 5-5\' stroke=\'%238892a4\' stroke-width=\'1.5\' fill=\'none\' stroke-linecap=\'round\'/%3E%3C/svg%3E")]' }, ...UNITS.map(u => h('option', { value: u, selected: u === initialState.unit }, u)))
       const priceInp = h('input', { className: 'premium-input w-full font-mono font-bold text-[var(--accent-primary)]', type: 'number', min: '0', placeholder: '0.00', step: '0.01', value: initialState.price || '' })
@@ -603,9 +603,9 @@
       }, h('span', { className: 'material-symbols-outlined font-black text-2xl' }, 'barcode_scanner'))
 
       const barcodeSearchBtn = h('button', {
-        className: 'absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white transition-colors flex', type: 'button', title: 'Поиск по штрихкоду вручную',
+        className: 'absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--accent-primary)] transition-colors flex z-10', type: 'button', title: 'Поиск по штрихкоду',
         onClick: () => { closeModal(); openBarcodeSearch((item, code) => applyFoundItem(item, code)) }
-      }, h('span', { className: 'material-symbols-outlined text-[18px]' }, 'search'))
+      }, h('span', { className: 'material-symbols-outlined', style: 'font-size:20px' }, 'search'))
 
       const addBtn = h('button', {
         className: 'w-full py-3.5 rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-[#0c0d10] font-black tracking-wider uppercase text-sm hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-2', type: 'button',
@@ -643,7 +643,9 @@
           ),
           h('div', {}, label('Название'), nameInp),
           h('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-3' },
-            h('div', {}, label('Штрихкод'), h('div', { className: 'relative' }, barcodeSearchBtn, barcodeInp)),
+            h('div', {}, label('Штрихкод'),
+              h('div', { className: 'relative' }, barcodeSearchBtn, barcodeInp)
+            ),
             h('div', {}, label('Цена (₽)'), priceInp)
           ),
           h('div', { className: 'grid grid-cols-2 gap-3' },
