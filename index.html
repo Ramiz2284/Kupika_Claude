@@ -1080,18 +1080,26 @@
       const ov = h('div', { className: 'scanner-ov' }, frame, hint, cancelBtn)
       document.body.appendChild(ov)
 
-      // Запуск камеры с фокусом
+      // Запуск камеры
       const constraints = {
         video: {
           facingMode: 'environment',
           width: { ideal: 1280 },
-          height: { ideal: 720 },
-          advanced: [{ focusMode: "continuous" }]
+          height: { ideal: 720 }
         }
       }
 
       navigator.mediaDevices.getUserMedia(constraints).then(stream => {
         if (stopped) { stream.getTracks().forEach(t => t.stop()); return }
+
+        // Пытаемся включить автофокус мягко, чтобы не сломать камеру на iPhone (Safari)
+        const track = stream.getVideoTracks()[0];
+        if (track && typeof track.applyConstraints === 'function') {
+          track.applyConstraints({
+            advanced: [{ focusMode: "continuous" }]
+          }).catch(() => { /* Игнорируем ошибку: iPhone Safari может это не поддерживать */ });
+        }
+
         _scanStream = stream
         video.srcObject = stream
 
@@ -1261,6 +1269,7 @@
     // ── ADD ITEM MODAL ─────────────────────────────────────
     function showAddItemModal(onAdd) {
       const nameInp = h('input', { className: 'inp', placeholder: 'Молоко, хлеб...', type: 'text' })
+      const barcodeInp = h('input', { className: 'inp', placeholder: 'Штрихкод...', type: 'text', inputmode: 'numeric' })
       const qtyInp = h('input', { className: 'inp', type: 'number', min: '0.01', step: '0.01', value: '1' })
       const unitSel = h('select', { className: 'inp' }, ...UNITS.map(u => h('option', { value: u }, u)))
       const priceInp = h('input', { className: 'inp', type: 'number', min: '0', placeholder: '0', step: '0.01' })
@@ -1280,6 +1289,7 @@
       })
 
       function applyFoundItem(item, code) {
+        barcodeInp.value = code || ''
         if (item) {
           nameInp.value = item.title || code
           if (item.offers && item.offers.length) priceInp.value = item.offers[0].price || ''
@@ -1324,7 +1334,7 @@
         onClick: () => {
           const name = nameInp.value.trim(); if (!name) { nameInp.focus(); return }
           onAdd({
-            id: genId(), name, qty: parseFloat(qtyInp.value) || 1, unit: unitSel.value,
+            id: genId(), name, barcode: barcodeInp.value.trim(), qty: parseFloat(qtyInp.value) || 1, unit: unitSel.value,
             price: parseFloat(priceInp.value) || 0, category: selectedCat, done: false
           })
           closeModal()
@@ -1336,8 +1346,9 @@
       openModal([
         h('div', { className: 'modal-title' }, 'Новый товар'),
         h('div', { className: 'form-row' },
-          h('label', { className: 'form-lbl' }, 'Название'),
-          h('div', { style: 'display:flex;gap:8px' }, nameInp, scanBtn, barcodeSearchBtn)
+          h('label', { className: 'form-lbl' }, 'Название и штрихкод'),
+          h('div', { style: 'display:flex;gap:8px;margin-bottom:8px;' }, nameInp, scanBtn, barcodeSearchBtn),
+          barcodeInp
         ),
         h('div', { className: 'grid2' },
           h('div', {}, h('label', { className: 'form-lbl' }, 'Количество'), qtyInp),
@@ -1437,11 +1448,14 @@
                 className: 'btn btn-danger btn-icon btn-sm item-del', type: 'button',
                 onClick: async () => { await save(items.filter(it => it.id !== item.id)); render() }
               }, icoTrash())
+              const metaText = `${item.qty} ${item.unit}${item.price ? ` · ${item.price}₽/ед.` : ''}${item.barcode ? ` · <code>${item.barcode}</code>` : ''}`
+              const metaEl = h('div', { className: 'item-meta' })
+              metaEl.innerHTML = metaText // using innerHTML to render <code> tag
               card.appendChild(h('div', { className: 'item' + (item.done ? ' done' : '') },
                 chk,
                 h('div', { className: 'item-body' },
                   h('div', { className: 'item-name' }, item.name),
-                  h('div', { className: 'item-meta' }, `${item.qty} ${item.unit}${item.price ? ` · ${item.price}₽/ед.` : ''}`)
+                  metaEl
                 ),
                 item.price > 0 ? h('div', { className: 'item-price' }, `${(item.price * item.qty).toFixed(0)}₽`) : null,
                 del
